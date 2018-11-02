@@ -38,50 +38,74 @@
         var prev_color;
         var new_color;
 
+        var points;
+        var new_points;
+
         var line_y = 500;
         var line_w = width - padding_h;
+        var start_radius = line_w * 0.35; 
 
         var node_distances = [];
         var datatype = 'history'
 
         var gen_line_points = function(){
-           var points = [];
+           var cur_points = [];
            var space_between_points = parseInt(line_w / data.length)
            
            for (i in data)  {
-               points.push(new Point(padding_h/2 + node_distances[i] * 20, line_y))
+               cur_points.push(new Point(padding_h/2 + node_distances[i] * 20, line_y))
            }
            
-           return points;
+           return cur_points;
         }
 
         var gen_circle_points = function(){
-            var points = []
-            var radius = 200;
+            var cur_points = []
+            var radius = start_radius;
             var anglestep = 360/data.length;
 
-            for (i in data) points.push(
+            for (i in data) cur_points.push(
                 new Point(
                     width/2 + Math.cos(2 * Math.PI * i / data.length)*radius, 
                     height/2 + Math.sin(2 * Math.PI * i / data.length)*radius 
                     ))
 
-            return points
+            return cur_points
+        }
+        
+        var gen_spiral_points = function(){
+            var cur_points = []
+            var radius = start_radius;
+            var anglestep = 360/data.length;
+
+            for (i in data) {
+                radius = radius - 10;
+                cur_points.push(
+                    new Point(
+                        width/2 + Math.cos(4 * Math.PI * i / data.length)*radius, 
+                        height/2 + Math.sin(4 * Math.PI * i / data.length)*radius 
+                        ))
+            }
+            return cur_points
         }
 
         var draw_circle = function(){
             last_click_frame = cur_frame;
-            prev_color = path.strokeColor;
             new_color = colors[parseInt(Math.random()*colors.length)]
+            new_points = gen_circle_points()
         }
 
 
         var draw_line = function(){
-            last_click_frame = cur_frame;            
+            last_click_frame = cur_frame;         
+            new_color = colors[parseInt(Math.random()*colors.length)]
+            new_points = gen_line_points()
         }
 
         var draw_spiral = function(){
             last_click_frame = cur_frame;            
+            new_color = colors[parseInt(Math.random()*colors.length)]
+            new_points = gen_spiral_points()
         }
         
         var draw = function(){
@@ -91,7 +115,7 @@
 
             path = new Path();
             path.strokeColor = prev_color 
-            path.strokeWidth = 20;
+            path.strokeWidth = 30;
             path.strokeCap = 'round';
             
             if (datatype == 'history'){
@@ -101,7 +125,7 @@
                 }
             }
 
-            points = gen_circle_points()
+            points = gen_spiral_points()
             
             for (i in points) {
                 path.add(points[i]);
@@ -139,29 +163,50 @@
             return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
         }
 
-        var easeColor = function(prev_color, new_color, i){
-            prev_rgb = hexToRgb(prev_color)
-            new_rgb = hexToRgb(new_color)
+        var easeColor = function(prev_color, new_color, anim_percent){
+            prev_rgb = new Color(prev_color)
+            new_rgb = new Color(new_color)
             
-            var x_r = (new_rgb.r - prev_rgb.r) * i / animation_duration;
-            var x_g = (new_rgb.g - prev_rgb.g) * i / animation_duration;
-            var x_b = (new_rgb.b - prev_rgb.b) * i / animation_duration;
+            var x_r = (new_rgb.red - prev_rgb.red) * anim_percent;
+            var x_g = (new_rgb.green - prev_rgb.green) * anim_percent;
+            var x_b = (new_rgb.blue - prev_rgb.blue) * anim_percent;
 
-            return rgbToHex(prev_rgb.r + x_r, prev_rgb.g + x_g, prev_rgb.b + x_b)
+            return new Color(prev_rgb.red + x_r, prev_rgb.green + x_g, prev_rgb.blue + x_b)
         }
+
+
+        var handle_animation_done = function(){
+            for (var i = 0; i < data.length; i++){
+                var segment = path.segments[i];
+                segment.point.x =  new_points[i].x
+                segment.point.y =  new_points[i].y
+            }
+            points = new_points;
+            path.smooth()
+        }
+
 
         function onFrame(event) {
             cur_frame += 1;
-            if (cur_frame - last_click_frame > animation_duration) return;
-            path.strokeColor = easeColor(prev_color, new_color, cur_frame - last_click_frame)
-            //for (var i = 0; i <= data.length -1; i++) {
-            //    var segment = path.segments[i];
+            if (cur_frame - last_click_frame > animation_duration) {
+                prev_color = new_color;
+                return;
+            }
+            if (cur_frame < animation_duration + 1) return;
+            
+            var anim_percent = (cur_frame - last_click_frame)/animation_duration
+            console.log(anim_percent)
+            path.strokeColor = easeColor(prev_color, new_color, anim_percent)
 
-            //    var sinus = Math.sin(event.time + i);
-                // Change the y position of the segment point:
-            //    segment.point.y = sinus * height/10 + height/4 + 100;
-            //}
-            //path.smooth();
+            for (var i = 0; i < data.length; i++){
+                var segment = path.segments[i];
+                segment.point.y = segment.point.y + (new_points[i].y - segment.point.y)*anim_percent;
+                segment.point.x = segment.point.x + (new_points[i].x - segment.point.x)*anim_percent;
+            }
+           
+            path.smooth()
+
+            if (cur_frame - last_click_frame == animation_duration) handle_animation_done()
 
         }
 
