@@ -19,15 +19,18 @@ var line_w = width - padding_h;
 var start_radius = line_w * 0.35; 
 
 var node_distances = [];
-var datatype = 'history'
+var datatype = 'history';
+var label_array = [];
+
 
 // generates the positions of all the points on a line
 var gen_line_points = function(){
    var cur_points = [];
    var space_between_points = parseInt(line_w / data.length)
    
-   for (i in data) cur_points.push(new Point(padding_h/2 + node_distances[i] * 20, line_y))
-   
+   //for (i in data) cur_points.push(new Point(padding_h/2 + node_distances[i] * 20, line_y))
+   for (i in data) cur_points.push(new Point(padding_h/2 + i*space_between_points, line_y))
+
    return cur_points;
 }
 
@@ -64,6 +67,9 @@ var gen_spiral_points = function(){
 }
 
 var draw_circle = function(){
+    document.getElementById('line_btn').style.backgroundColor = 'white'
+    document.getElementById('spiral_btn').style.backgroundColor = 'white'
+    document.getElementById('circle_btn').style.backgroundColor = 'gray'
     last_click_frame = cur_frame;
     new_color = colors[parseInt(Math.random()*colors.length)]
     new_points = gen_circle_points()
@@ -71,12 +77,18 @@ var draw_circle = function(){
 
 
 var draw_line = function(){
+    document.getElementById('line_btn').style.backgroundColor = 'gray'
+    document.getElementById('spiral_btn').style.backgroundColor = 'white'
+    document.getElementById('circle_btn').style.backgroundColor = 'white'
     last_click_frame = cur_frame;         
     new_color = colors[parseInt(Math.random()*colors.length)]
     new_points = gen_line_points()
 }
 
 var draw_spiral = function(){
+    document.getElementById('line_btn').style.backgroundColor = 'white'
+    document.getElementById('spiral_btn').style.backgroundColor = 'gray'
+    document.getElementById('circle_btn').style.backgroundColor = 'white'
     last_click_frame = cur_frame;            
     new_color = colors[parseInt(Math.random()*colors.length)]
     new_points = gen_spiral_points()
@@ -114,21 +126,29 @@ var draw = function(){
         }
     }
 
-    points = gen_spiral_points()
+    points = gen_circle_points()
     
     for (i in points) {
         path.add(points[i]);
-        
-        text = new PointText(new Point(points[i].x, points[i].y - 20));
-        text.justification = 'center';
-        text.fillColor = 'black';
-        text.content = data[i][0];
-        
-        text = new PointText(new Point(points[i].x, points[i].y + 200));
-        text.justification = 'center';
-        text.fillColor = 'black';
-        //text.content = data[i][1];
-        text.rotation = 45
+       
+        if (datatype == 'moon'){
+            img = new Raster({
+                source: 'res/' + i + '.png',
+                position: new Point(points[i].x, points[i].y - 70)
+            })
+            img.scale(0.08)
+        } else {
+            text = new PointText(new Point(points[i].x, points[i].y - 20));
+            text.justification = 'center';
+            text.fillColor = 'black';
+            text.content = data[i][0];
+            
+            text = new PointText(new Point(points[i].x, points[i].y + 200));
+            text.justification = 'center';
+            text.fillColor = 'black';
+            //text.content = data[i][1];
+            text.rotation = 45
+        }
     }
 
     path.smooth()
@@ -182,25 +202,52 @@ var onFrame = function(event) {
 }
 
 
-var init = function(){
+var draw_random = function(){
+    
+}
 
-    var path = null;
-    switch (datatype){
-        case 'history'  : path = 'data/history.csv'; break;
-        case 'moon'     : console.warn('function not yet implemented'); return;
-        case 'schedule' : console.warn('function not yet implemented'); return;
-        default         : path = 'data/history.csv'; break;
-    }
 
+var load_history = function(){
     Papa.parse('data/history.csv', {
         download: true,
         dynamicTyping: true,
         complete: function(results) {
-             
             data = results.data.splice(1, results.data.length);
+            console.log(data)
             draw()
         }
     })
+}
+
+
+var load_moon = function(){
+    data = [
+        ['u1F311'],
+        ['u1F312'],
+        ['u1F313'],
+        ['u1F314'],
+        ['u1F315'],
+        ['u1F316'],
+        ['u1F317'],
+        ['u1F318']
+    ]
+
+    draw()
+}
+
+
+var init = function(){
+
+    var path = null;
+    switch (datatype){
+        case 'history': 
+            load_history(); break;
+        case 'moon':
+            load_moon(); break;
+        case 'schedule' : console.warn('function not yet implemented'); return;
+        default         : load_history(); break;
+    }
+
 }
 
 document.getElementById('circle_btn').onclick = draw_circle
