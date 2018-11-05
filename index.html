@@ -21,216 +21,27 @@
         .btn {
             margin: 10px;
         }
+
+        .btn_div {
+        	margin: 10px;
+        	font-family: Arial;
+        }
     </style>
 
-    <script type='text/paperscript' canvas='thecanvas'>
-
-        var data;
-        var width = document.getElementById('thecanvas').width
-        var height = document.getElementById('thecanvas').height
-        var padding_h = 150
-        var animation_duration = 50;
-        var last_click_frame = 0;
-        var cur_frame = 0;
-        var path;
-
-        var colors = ['#ECD078', '#D95b43', '#C02942', '#542437', '#53777A'];
-        var prev_color;
-        var new_color;
-
-        var points;
-        var new_points;
-
-        var line_y = 500;
-        var line_w = width - padding_h;
-        var start_radius = line_w * 0.35; 
-
-        var node_distances = [];
-        var datatype = 'history'
-
-        var gen_line_points = function(){
-           var cur_points = [];
-           var space_between_points = parseInt(line_w / data.length)
-           
-           for (i in data)  {
-               cur_points.push(new Point(padding_h/2 + node_distances[i] * 20, line_y))
-           }
-           
-           return cur_points;
-        }
-
-        var gen_circle_points = function(){
-            var cur_points = []
-            var radius = start_radius;
-            var anglestep = 360/data.length;
-
-            for (i in data) cur_points.push(
-                new Point(
-                    width/2 + Math.cos(2 * Math.PI * i / data.length)*radius, 
-                    height/2 + Math.sin(2 * Math.PI * i / data.length)*radius 
-                    ))
-
-            return cur_points
-        }
-        
-        var gen_spiral_points = function(){
-            var cur_points = []
-            var radius = start_radius;
-            var anglestep = 360/data.length;
-
-            for (i in data) {
-                radius = radius - 10;
-                cur_points.push(
-                    new Point(
-                        width/2 + Math.cos(4 * Math.PI * i / data.length)*radius, 
-                        height/2 + Math.sin(4 * Math.PI * i / data.length)*radius 
-                        ))
-            }
-            return cur_points
-        }
-
-        var draw_circle = function(){
-            last_click_frame = cur_frame;
-            new_color = colors[parseInt(Math.random()*colors.length)]
-            new_points = gen_circle_points()
-        }
-
-
-        var draw_line = function(){
-            last_click_frame = cur_frame;         
-            new_color = colors[parseInt(Math.random()*colors.length)]
-            new_points = gen_line_points()
-        }
-
-        var draw_spiral = function(){
-            last_click_frame = cur_frame;            
-            new_color = colors[parseInt(Math.random()*colors.length)]
-            new_points = gen_spiral_points()
-        }
-        
-        var draw = function(){
-
-            prev_color = colors[parseInt(Math.random()*colors.length)];
-            new_color = colors[parseInt(Math.random()*colors.length)];
-
-            path = new Path();
-            path.strokeColor = prev_color 
-            path.strokeWidth = 30;
-            path.strokeCap = 'round';
-            
-            if (datatype == 'history'){
-                var maxdistance = data[data.length - 1][0] - data[0][0]
-                for (var i = 0; i < data.length; i++){
-                    node_distances.push((data[i][0] - data[0][0]))
-                }
-            }
-
-            points = gen_spiral_points()
-            
-            for (i in points) {
-                path.add(points[i]);
-                
-                text = new PointText(new Point(points[i].x, points[i].y - 20));
-                text.justification = 'center';
-                text.fillColor = 'black';
-                text.content = data[i][0];
-                
-                text = new PointText(new Point(points[i].x, points[i].y + 200));
-                text.justification = 'center';
-                text.fillColor = 'black';
-                //text.content = data[i][1];
-                text.rotation = 45
-            }
-
-            path.smooth()
-        }
-
-        function hexToRgb(hex) {
-            var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-            return result ? {
-                r: parseInt(result[1], 16),
-                g: parseInt(result[2], 16),
-                b: parseInt(result[3], 16)
-            } : null;
-        }
-        
-        function componentToHex(c) {
-            var hex = c.toString(16);
-            return hex.length == 1 ? "0" + hex : hex;
-        }
-
-        function rgbToHex(r, g, b) {
-            return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
-        }
-
-        var easeColor = function(prev_color, new_color, anim_percent){
-            prev_rgb = new Color(prev_color)
-            new_rgb = new Color(new_color)
-            
-            var x_r = (new_rgb.red - prev_rgb.red) * anim_percent;
-            var x_g = (new_rgb.green - prev_rgb.green) * anim_percent;
-            var x_b = (new_rgb.blue - prev_rgb.blue) * anim_percent;
-
-            return new Color(prev_rgb.red + x_r, prev_rgb.green + x_g, prev_rgb.blue + x_b)
-        }
-
-
-        var handle_animation_done = function(){
-            for (var i = 0; i < data.length; i++){
-                var segment = path.segments[i];
-                segment.point.x =  new_points[i].x
-                segment.point.y =  new_points[i].y
-            }
-            points = new_points;
-            path.smooth()
-        }
-
-
-        function onFrame(event) {
-            cur_frame += 1;
-            if (cur_frame - last_click_frame > animation_duration) {
-                prev_color = new_color;
-                return;
-            }
-            if (cur_frame < animation_duration + 1) return;
-            
-            var anim_percent = (cur_frame - last_click_frame)/animation_duration
-            console.log(anim_percent)
-            path.strokeColor = easeColor(prev_color, new_color, anim_percent)
-
-            for (var i = 0; i < data.length; i++){
-                var segment = path.segments[i];
-                segment.point.y = segment.point.y + (new_points[i].y - segment.point.y)*anim_percent;
-                segment.point.x = segment.point.x + (new_points[i].x - segment.point.x)*anim_percent;
-            }
-           
-            path.smooth()
-
-            if (cur_frame - last_click_frame == animation_duration) handle_animation_done()
-
-        }
-
-        document.getElementById('circle_btn').onclick = draw_circle
-        document.getElementById('line_btn').onclick = draw_line
-        document.getElementById('spiral_btn').onclick = draw_spiral
-
-        Papa.parse('data/history.csv', {
-            download: true,
-            dynamicTyping: true,
-            complete: function(results) {
-                 
-                data = results.data.splice(1, results.data.length);
-                draw()
-            }
-        })
-
-    </script>
+    <script type='text/paperscript' canvas='thecanvas' src='js/main.js'></script>
     </head>
 
     <body>
-        <button class = 'btn' id='circle_btn'> circular </button>
-        <button class = 'btn' id='line_btn'> linear </button>
-        <button class = 'btn' id='spiral_btn'> spiral </button>
+    	<div class='btn_div'> shapes: 
+        	<button class = 'btn' id='circle_btn'> circular </button>
+        	<button class = 'btn' id='line_btn'> linear </button>
+        	<button class = 'btn' id='spiral_btn'> spiral </button>
+       	</div>
+       	<div class='btn_div'> datasets:
+       		<button class = 'btn' id='history_btn'> history </button>
+       		<button class = 'btn' id='moon_btn'> moon </button>
+       		<button class = 'btn' id='schedule_btn'> schedule </button>
+       	</div>
         <canvas id='thecanvas' resize></canvas>
     </body>
 </html>
