@@ -21,7 +21,11 @@ var start_radius = line_w * 0.35;
 var node_distances = [];
 var datatype = 'history';
 var label_array = [];
+var label_array2 = [];
 var text_coords = [];
+var text_coords2 = [];
+
+var max_dates_in_history = 10;
 
 
 // generates the positions of all the points on a line
@@ -36,13 +40,14 @@ var gen_line_points = function(){
 }
 
 
-var gen_line_text_coords = function(){
+var gen_line_text_coords = function(offset){
    var cur_points = [];
+   if (offset == undefined) offset = -50
    var space_between_points = parseInt(line_w / data.length)
    
    //for (i in data) cur_points.push(new Point(padding_h/2 + node_distances[i] * 20, line_y))
    for (i in data) cur_points.push({
-       coords: new Point(padding_h/2 + i*space_between_points, line_y - 50),
+       coords: new Point(padding_h/2 + i*space_between_points, line_y + offset),
        rotation: 45
    })
 
@@ -65,25 +70,23 @@ var gen_circle_points = function(){
 }
 
 
-var gen_circle_text_coords = function () {
+var gen_circle_text_coords = function (radius) {
     var cur_points = []
-    var radius = start_radius + 40;
+
+    if (radius == undefined) radius = start_radius + 150;
 
     for (i in data) cur_points.push(
         { 
             coords: new Point(
-                width/2 + Math.cos(2 * Math.PI * i / data.length)*radius, 
-                height/2 + Math.sin(2 * Math.PI * i / data.length)*radius 
+                width/2 + Math.cos(-Math.PI/2 + 2 * Math.PI * i / data.length)*radius, 
+                height/2 + Math.sin(-Math.PI/2 + 2 * Math.PI * i / data.length)*radius 
                 ),
-            rotation:  (2 * Math.PI * i / data.length) * 180 / Math.PI
+            rotation:  ((i < data.length/2 ? 0 : Math.PI) - Math.PI/2 + 2 * Math.PI * i / data.length) * 180 / Math.PI
         }
     )
 
     return cur_points
 }
-
-
-
 
 
 // generates the positions of all the points on a spiral
@@ -131,6 +134,7 @@ var draw_circle = function(){
     new_color = colors[parseInt(Math.random()*colors.length)]
     new_points = gen_circle_points()
     text_coords = gen_circle_text_coords()
+    if (datatype == 'history') text_coords2 = gen_circle_text_coords(start_radius - 50)
     path.closed = true
 }
 
@@ -142,7 +146,8 @@ var draw_line = function(){
     last_click_frame = cur_frame;         
     new_color = colors[parseInt(Math.random()*colors.length)]
     new_points = gen_line_points()
-    text_coords = gen_line_text_coords()
+    text_coords = gen_line_text_coords(-100)
+    if (datatype == 'history') text_coords2 = gen_line_text_coords(70)
     path.closed = false
 }
 
@@ -154,6 +159,7 @@ var draw_spiral = function(){
     new_color = colors[parseInt(Math.random()*colors.length)]
     new_points = gen_spiral_points()
     text_coords = gen_spiral_text_coords()
+    if (datatype == 'history') text_coords2 = gen_spiral_text_coords(start_radius - 50)
     path.closed = false
 }
 
@@ -174,6 +180,13 @@ var draw_schedule = function(){
 
 var draw = function(){
 
+    
+
+    label_array = []
+    label_array2 = []
+    text_coords = []
+    text_coords2 = []
+
     prev_color = colors[parseInt(Math.random()*colors.length)];
     new_color = colors[parseInt(Math.random()*colors.length)];
 
@@ -191,6 +204,7 @@ var draw = function(){
 
     points = gen_circle_points()
     text_coords = gen_circle_text_coords()
+    if (datatype == 'history') text_coords2 = gen_circle_text_coords(start_radius - 50)
     
     for (i in points) {
         path.add(points[i]);
@@ -202,20 +216,49 @@ var draw = function(){
             })
             img.scale(0.08)
             label_array.push(img)
-        } else {
+        } else if (datatype == 'history'){
             text = new PointText(text_coords[i].coords);
-            text.justification = 'center';
+            text.style.justification = 'center';
             text.fillColor = 'black';
-            text.content = data[i][0];
-            text.rotation = text_coords[i].rotation
+            text.fontSize = 16
+           
+            if (data[i][1].length > 10){
+                aux_d = data[i][1].split(' ')
+                aux_i = Math.ceil(aux_d.length/3)
+                aux_s = ''
+                for (j in aux_d) {
+                    aux_s += aux_d[j] + ' '
+                    if (j != 0 && j % aux_i == 0) aux_s += '\n'
+                }
+                data[i][1] = aux_s
+            }
 
             label_array.push(text)
+            
+            text.content = data[i][1];
+            text.rotation = text_coords[i].rotation
 
-            //text = new PointText(new Point(points[i].x, points[i].y + 200));
-            //text.justification = 'center';
-            //text.fillColor = 'black';
-            //text.content = data[i][1];
-            //text.rotation = 45
+            text = new PointText(text_coords2[i].coords);
+            text.justification = 'center';
+            text.fillColor = 'black';
+            text.fontSize = 16
+            text.style.fontWeight = 'bold'
+           
+            if (data[i][1].length > 10){
+                aux_d = data[i][1].split(' ')
+                aux_i = Math.ceil(aux_d.length/3)
+                aux_s = ''
+                for (j in aux_d) {
+                    aux_s += aux_d[j] + ' '
+                    if (j != 0 && j % aux_i == 0) aux_s += '\n'
+                }
+                data[i][1] = aux_s
+            }
+
+            text.content = data[i][0];
+            text.rotation = text_coords2[i].rotation
+
+            label_array2.push(text)
         }
     }
 
@@ -251,6 +294,8 @@ var move_labels = function(){
     for (i in label_array){
         label_array[i].position = text_coords[i].coords
         label_array[i].rotation = text_coords[i].rotation
+        label_array2[i].position = text_coords2[i].coords
+        label_array2[i].rotation = text_coords2[i].rotation
     }
 }
 
@@ -275,6 +320,18 @@ var onFrame = function(event) {
         else {
             if (datatype == 'moon') {}//label_array[i].opacity = anim_percent*2 - 0.5
             else label_array[i].fillColor.alpha = anim_percent*2 - 0.5
+        }
+    }
+    
+    for (i in label_array2){
+        if (anim_percent < 0.5) {
+            if (datatype == 'moon') label_array2[i].opacity = label_array2[i].opacity - 0.1 
+            else label_array2[i].fillColor.alpha = - anim_percent * 2
+        }
+        else if (anim_percent == 0.5) move_labels()
+        else {
+            if (datatype == 'moon') {}
+            else label_array2[i].fillColor.alpha = anim_percent*2 - 0.5
         }
     }
 
@@ -337,8 +394,10 @@ var init = function(){
 
     var path = null;
     switch (datatype){
-        case 'history': 
-            load_history(); break;
+        case 'history':
+            console.log('loading history')
+            load_history(); 
+            break;
         case 'moon':
             load_moon(); break;
         case 'schedule' : console.warn('function not yet implemented'); return;
