@@ -19,18 +19,20 @@ var line_w = width - padding_h;
 var start_radius = line_w * 0.25; 
 
 var node_distances = [];
-var datatype = 'schedule_non_recurrent';
+var datatype = 'schedule_recurrent';
 var label_array = [];
 var label_array2 = [];
 var text_coords = [];
 var text_coords2 = [];
+var text_coords3 = [];
+var schedule_paths = [];
 
 var max_dates_in_history = 20;
 
 
 var shift_strings = function(side, shape, datatype){
 
-    if (datatype != 'schedule'){
+    if (datatype == 'history'){
         for (i in data) data[i][1] = data[i][1].trim()
 
         var max_string_length = Math.max.apply(0, data.map(function(d){return d[1].length}))
@@ -52,8 +54,6 @@ var shift_strings = function(side, shape, datatype){
             }
         }
     } else {
-    
-        for (i in data) data[i][2] = data[i][2].trim()
 
         var max_string_length = Math.max.apply(0, data.map(function(d){return d[2].length}))
         
@@ -70,7 +70,7 @@ var shift_strings = function(side, shape, datatype){
             }
             else {
                 if (side == 'right') label_array[i].content = res + str
-                else label_array[i].content = str + res
+                else label_array[i].content = str + res 
             }
         }
     }
@@ -95,15 +95,13 @@ var gen_line_text_coords = function(offset, second_set){
    var space_between_points = parseInt(line_w / data.length)
 
     if (datatype == 'moon'){
-       //for (i in data) cur_points.push(new Point(padding_h/2 + node_distances[i] * 20, line_y))
        for (i in data) {
            cur_points.push({
                coords: new Point(padding_h/2 + i*space_between_points, line_y + offset - 50),
            rotation: 45
         })
        }
-    } else {
-       //for (i in data) cur_points.push(new Point(padding_h/2 + node_distances[i] * 20, line_y))
+    } else if (datatype == 'history'){
        for (i in data) {
            cur_points.push({
                coords: new Point(padding_h/2 + i*space_between_points - (!second_set? 120 : 0), line_y + offset),
@@ -111,6 +109,13 @@ var gen_line_text_coords = function(offset, second_set){
         })
        }
     
+    } else {
+        for (i in data) {
+           cur_points.push({
+               coords: new Point(padding_h/2 + i*space_between_points, line_y + offset),
+           rotation: 45
+        })
+       }
     }
   
 
@@ -244,6 +249,76 @@ var draw_schedule = function(){
     init()
 }
 
+
+var compute_date_diff = function(date1, date2){
+    var date1 = new Date(date1);
+    var date2 = new Date(date2);
+    var timeDiff = Math.abs(date2.getTime() - date1.getTime());
+    var diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24)); 
+    return diffDays;
+}
+
+
+var compute_event_start_end = function(h_start, h_end, dataline){
+    var date_diff = compute_date_diff(data[0][1], data[data.length - 1][1]) + 1
+    var this_date_x = line_w * compute_date_diff(dataline[1], data[0][1]) / date_diff
+    var hour_start = h_start.split(':')[0] + h_start.split(':')[1]
+    var this_event_x = this_date_x + hour_start * (line_w/date_diff) / 2400
+    var hour_end = h_end.split(':')[0] + h_end.split(':')[1]
+    if (dataline[2] == 'Sleep') hour_end = parseInt(hour_start) + parseInt(hour_end)
+
+    var this_event_x2 = this_date_x + hour_end * (line_w/date_diff) / 2400 + 0.1
+
+    return [this_event_x, this_event_x2]
+}
+
+
+var compute_line_coords = function(point, day, h_start, h_end, dataline){
+    var v_offset = 50
+    var cur_points = [];
+    var event_boundaries = compute_event_start_end(h_start, h_end, dataline)
+
+    cur_points.push(new Point(padding_h/2 + event_boundaries[0], point.y + 10 - v_offset))
+    cur_points.push(new Point(padding_h/2 + event_boundaries[1], point.y + 10 - v_offset))
+    return cur_points
+}
+
+
+var gen_line_text_coords_for_schedule_hours = function(){
+    cur_points = [];
+    for (i in data){
+        var event_boundaries = compute_event_start_end(data[i][3], data[i][4], data[i])
+        cur_points.push({
+            coords: new Point(padding_h/2 + event_boundaries[0], line_y - 70),
+            rotation: 90
+        })
+        cur_points.push({
+            coords: new Point(padding_h/2 + event_boundaries[1], line_y - 70),
+            rotation: 90
+        })
+
+    }
+    return cur_points
+}
+
+
+var gen_text_coords_for_schedule = function(){
+    var cur_points = [];
+
+    for (i in data) {
+        var event_boundaries = compute_event_start_end(data[i][3], data[i][4], data[i])
+        var this_x = (event_boundaries[0] + event_boundaries[1])*0.5
+
+        cur_points.push({
+           coords: new Point(padding_h/2 + this_x, line_y - 160),
+           rotation: 90
+        })
+    }
+
+    return cur_points
+}
+
+
 var draw = function(){
 
     // cleanup
@@ -272,7 +347,8 @@ var draw = function(){
     }
 
     points = gen_line_points()
-    text_coords = gen_line_text_coords(-110, false)
+    text_coords = gen_text_coords_for_schedule()
+    if (datatype == 'schedule_recurrent') text_coords2 = gen_line_text_coords_for_schedule_hours()
     if (datatype == 'history') text_coords2 = gen_line_text_coords(40, true)
     
     for (i in points) {
@@ -318,7 +394,19 @@ var draw = function(){
             text.rotation = text_coords2[i].rotation
 
             label_array2.push(text)
-        } else {
+        } else if (datatype == 'schedule_non_recurrent' || datatype == 'schedule_recurrent'){
+
+            new_path = new Path()
+            new_path.strokeColor = colors[parseInt(Math.random() * colors.length)]
+            new_path.strokeWidth = 20
+            new_path.strokeCap = 'round'
+
+            coords = compute_line_coords(points[i], data[i][1], data[i][3], data[i][4], data[i])
+
+            for (elem in coords) new_path.add(coords[elem])
+
+            schedule_paths.push(new_path)
+
             text = new PointText(text_coords[i].coords);
             text.style.justification = 'center';
             text.fillColor = 'black';
@@ -327,15 +415,33 @@ var draw = function(){
 
             label_array.push(text)
             
-            text.content = data[i][2];
+            text.content = data[i][3] + data[i][2];
             text.rotation = text_coords[i].rotation
+
+            text = new PointText(text_coords2[i*2].coords);
+            text.style.justification = 'center';
+            text.fillColor = 'black';
+            text.fontFamily = 'monospace'
+            text.fontSize = 12
+
+            text.content = data[i][3]
+            text.rotation = text_coords2[i*2].rotation
+
+            text = new PointText(text_coords2[i*2 + 1].coords);
+            text.style.justification = 'center';
+            text.fillColor = 'black';
+            text.fontFamily = 'monospace'
+            text.fontSize = 12
+
+            text.content = data[i][4]
+            text.rotation = text_coords2[i*2 + 1].rotation
         }
     }
     
     shift_strings('right', 'line', 'schedule')
 
     path.smooth()
-    path.closed = true
+    path.closed = false
 }
 
 
@@ -453,25 +559,17 @@ var load_schedule_recurrent = function(){
         dynamicTyping: true,
         complete: function(results) {
             data = results.data.splice(1, results.data.length);
+
+            // fixed data formatting
+            for (i in data){
+                data[i][1] = data[i][1].split('/')[1] + '/' + data[i][1].split('/')[0] + '/2018'
+            }
+            if (true){ data = data.splice(0, 16)}
+            data = data.filter(function(d){return d[2] != 'Wake up'})
+            //if (true){ data = data.splice(0, 30)}
             console.log(data)
-            //if (max_dates_in_history != undefined && max_dates_in_history != 0){
-                //data = data.splice(0, max_dates_in_history)
-            //}
-            
-            //if (true){
-                //start_date = 900
-                //interval_value = 10
-                //cur_date = start_date
-                //end_date = Math.ceil(Math.max.apply(0, data.map(function(d){return d[0]}))/100) * 100
-                //while (cur_date <= end_date){
-                    //if (! data.some(function(d){return d[0] == cur_date})) 
-                        //data.splice(data.indexOf(data.find(function(d){return d[0] > cur_date})), 0, [cur_date, ''])
-                    //cur_date += interval_value
-                //}
-            //}
-            
-            //console.log(data)
-            //draw()
+
+            draw()
         }
     })
 }
