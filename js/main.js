@@ -144,8 +144,7 @@ var gen_circle_text_coords = function (radius, second_set) {
     if (radius == undefined) radius = start_radius + 160;
     if (!second_set && datatype == 'history') shift_strings('left', 'circle')
 
-    for (i in data) cur_points.push(
-        { 
+    for (i in data) cur_points.push({ 
             coords: new Point(
                 width/2 + Math.cos(-Math.PI/2 + 2 * Math.PI * i / data.length)*radius, 
                 height/2 + Math.sin(-Math.PI/2 + 2 * Math.PI * i / data.length)*radius 
@@ -273,6 +272,28 @@ var compute_event_start_end = function(h_start, h_end, dataline){
 }
 
 
+var compute_circle_coords = function(point, day, h_start, h_end, dataline){
+    var v_offset = 50
+    var cur_points = [];
+    var event_boundaries = compute_event_start_end(h_start, h_end, dataline)
+    var radius = start_radius + 40
+
+    cur_points.push(
+        new Point(
+            width/2 + Math.cos(2 * Math.PI * event_boundaries[0] / 850) * radius, 
+            height/2 + Math.sin(2 * Math.PI * event_boundaries[0] / 850) * radius))
+    cur_points.push(
+        new Point(
+            width/2 + Math.cos(2 * Math.PI * (event_boundaries[1] + event_boundaries[0])*0.5 / 850) * radius, 
+            height/2 + Math.sin(2 * Math.PI * (event_boundaries[1] + event_boundaries[0])*0.5 / 850) * radius))
+    cur_points.push(
+        new Point(
+            width/2 + Math.cos(2 * Math.PI * event_boundaries[1] / 850)*radius, 
+            height/2 + Math.sin(2 * Math.PI * event_boundaries[1] / 850)*radius))
+    return cur_points
+}
+
+
 var compute_line_coords = function(point, day, h_start, h_end, dataline){
     var v_offset = 50
     var cur_points = [];
@@ -285,6 +306,24 @@ var compute_line_coords = function(point, day, h_start, h_end, dataline){
 
 
 var gen_line_text_coords_for_schedule_hours = function(){
+    cur_points = [];
+    for (i in data){
+        var event_boundaries = compute_event_start_end(data[i][3], data[i][4], data[i])
+        cur_points.push({
+            coords: new Point(padding_h/2 + event_boundaries[0], line_y - 70),
+            rotation: 90
+        })
+        cur_points.push({
+            coords: new Point(padding_h/2 + event_boundaries[1], line_y - 70),
+            rotation: 90
+        })
+
+    }
+    return cur_points
+}
+
+
+var gen_circle_text_coords_for_schedule_hours = function(){
     cur_points = [];
     for (i in data){
         var event_boundaries = compute_event_start_end(data[i][3], data[i][4], data[i])
@@ -319,6 +358,28 @@ var gen_text_coords_for_schedule = function(){
 }
 
 
+var gen_circle_text_coords_for_schedule = function(){
+    var cur_points = [];
+
+    var radius = start_radius + 120
+
+    for (i in data) {
+        console.log(data[i])
+        var event_boundaries = compute_event_start_end(data[i][3], data[i][4], data[i])
+        var this_x = (event_boundaries[0] + event_boundaries[1])*0.5
+
+        cur_points.push({
+           coords: new Point(
+                width/2 + Math.cos(2 * Math.PI * this_x / 850) * radius, 
+                height/2 + Math.sin(2 * Math.PI * this_x / 850) * radius),
+           rotation: (2 * Math.PI * i / data.length) * 180 / Math.PI
+        })
+    }
+
+    return cur_points
+}
+
+
 var draw = function(){
 
     // cleanup
@@ -346,9 +407,9 @@ var draw = function(){
         }
     }
 
-    points = gen_line_points()
-    text_coords = gen_text_coords_for_schedule()
-    if (datatype == 'schedule_recurrent') text_coords2 = gen_line_text_coords_for_schedule_hours()
+    points = gen_circle_points()
+    text_coords = gen_circle_text_coords_for_schedule()
+    if (datatype == 'schedule_recurrent') text_coords2 = gen_circle_text_coords_for_schedule_hours()
     if (datatype == 'history') text_coords2 = gen_line_text_coords(40, true)
     
     for (i in points) {
@@ -401,7 +462,7 @@ var draw = function(){
             new_path.strokeWidth = 20
             new_path.strokeCap = 'round'
 
-            coords = compute_line_coords(points[i], data[i][1], data[i][3], data[i][4], data[i])
+            coords = compute_circle_coords(points[i], data[i][1], data[i][3], data[i][4], data[i])
 
             for (elem in coords) new_path.add(coords[elem])
 
@@ -441,7 +502,7 @@ var draw = function(){
     shift_strings('right', 'line', 'schedule')
 
     path.smooth()
-    path.closed = false
+    path.closed = true
 }
 
 
@@ -582,19 +643,6 @@ var load_schedule_non_recurrent = function(){
         complete: function(results) {
             data = results.data.splice(1, results.data.length);
             console.log(data)
-            //if (true){
-                //start_date = 900
-                //interval_value = 10
-                //cur_date = start_date
-                //end_date = Math.ceil(Math.max.apply(0, data.map(function(d){return d[0]}))/100) * 100
-                //while (cur_date <= end_date){
-                    //if (! data.some(function(d){return d[0] == cur_date})) 
-                        //data.splice(data.indexOf(data.find(function(d){return d[0] > cur_date})), 0, [cur_date, ''])
-                    //cur_date += interval_value
-                //}
-            //}
-            
-            //console.log(data)
             draw()
         }
     })
