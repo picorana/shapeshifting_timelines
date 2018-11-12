@@ -324,19 +324,28 @@ var gen_line_text_coords_for_schedule_hours = function(){
 
 
 var gen_circle_text_coords_for_schedule_hours = function(){
-    cur_points = [];
-    for (i in data){
-        var event_boundaries = compute_event_start_end(data[i][3], data[i][4], data[i])
-        cur_points.push({
-            coords: new Point(padding_h/2 + event_boundaries[0], line_y - 70),
-            rotation: 90
-        })
-        cur_points.push({
-            coords: new Point(padding_h/2 + event_boundaries[1], line_y - 70),
-            rotation: 90
-        })
+    var cur_points = [];
 
+    var radius = start_radius + 75
+
+    for (i in data) {
+        var event_boundaries = compute_event_start_end(data[i][3], data[i][4], data[i])
+        var this_x = (event_boundaries[0] + event_boundaries[1])*0.5
+
+        cur_points.push({
+           coords: new Point(
+                width/2 + Math.cos(2 * Math.PI * event_boundaries[0] / 850) * radius, 
+                height/2 + Math.sin(2 * Math.PI * event_boundaries[0] / 850) * radius),
+           rotation: (2 * Math.PI * event_boundaries[0]/850) * 180 / Math.PI
+        })
+        cur_points.push({
+           coords: new Point(
+                width/2 + Math.cos(2 * Math.PI * event_boundaries[1] / 850) * radius, 
+                height/2 + Math.sin(2 * Math.PI * event_boundaries[1] / 850) * radius),
+           rotation: (2 * Math.PI * event_boundaries[1]/850) * 180 / Math.PI
+        })
     }
+
     return cur_points
 }
 
@@ -364,7 +373,6 @@ var gen_circle_text_coords_for_schedule = function(){
     var radius = start_radius + 120
 
     for (i in data) {
-        console.log(data[i])
         var event_boundaries = compute_event_start_end(data[i][3], data[i][4], data[i])
         var this_x = (event_boundaries[0] + event_boundaries[1])*0.5
 
@@ -372,7 +380,7 @@ var gen_circle_text_coords_for_schedule = function(){
            coords: new Point(
                 width/2 + Math.cos(2 * Math.PI * this_x / 850) * radius, 
                 height/2 + Math.sin(2 * Math.PI * this_x / 850) * radius),
-           rotation: (2 * Math.PI * i / data.length) * 180 / Math.PI
+           rotation: (2 * Math.PI * this_x/850) * 180 / Math.PI
         })
     }
 

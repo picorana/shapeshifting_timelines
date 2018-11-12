@@ -1,12 +1,12 @@
 Day,DD/MM/YYYY,Event,Time_start(HH:MM),Time_end(HH:MM)
 Monday,01/10/2018,Wake up,8:00,8:00
-Monday,01/10/2018,Viz Meeting,14:45,15:45
+Monday,01/10/2018,Meeting,14:45,15:45
 Monday,01/10/2018,Lunch,12:00,13:00
 Monday,01/10/2018,Exercise,18:00,20:00
 Monday,01/10/2018,Sleep,23:30,8:00
 Tuesday,02/10/2018,Wake up,8:00,8:00
 Tuesday,02/10/2018,Lunch,12:00,13:00
-Tuesday,02/10/2018,CS7340,15:25,17:05
+Tuesday,02/10/2018,Class,15:25,17:05
 Tuesday,02/10/2018,Sleep,23:30,8:00
 Wednesday,03/10/2018,Wake up,8:00,8:00
 Wednesday,03/10/2018,Lunch,12:00,13:00
@@ -17,7 +17,7 @@ Thursday,04/10/2018,Lunch,12:00,13:00
 Thursday,04/10/2018,Sleep,23:30,8:00
 Friday,05/10/2018,Wake up,8:00,8:00
 Friday,05/10/2018,Lunch,12:00,13:00
-Friday,05/10/2018,CS7340,15:25,17:05
+Friday,05/10/2018,Class,15:25,17:05
 Friday,05/10/2018,Exercise,18:00,20:00
 Saturday,06/10/2018,Sleep,1:30,10:00
 Saturday,06/10/2018,Wake up,10:00,10:00
