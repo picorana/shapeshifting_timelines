@@ -7,6 +7,9 @@ var last_click_frame = 0;
 var cur_frame = 0;
 var path;
 
+window.big_text_font_size = 14;
+window.small_text_font_size = 12;
+
 var colors = ['#ECD078', '#D95b43', '#C02942', '#542437', '#53777A'];
 var prev_color;
 var new_color;
@@ -26,13 +29,18 @@ var text_coords = [];
 var text_coords2 = [];
 var text_coords3 = [];
 var schedule_paths = [];
+var schedule_smalltexts = [];
 
 var max_dates_in_history = 20;
+var colormap = {}
 
 
 var shift_strings = function(side, shape, datatype){
 
+    console.log('shifting')
+
     if (datatype == 'history'){
+
         for (i in data) data[i][1] = data[i][1].trim()
 
         var max_string_length = Math.max.apply(0, data.map(function(d){return d[1].length}))
@@ -61,7 +69,7 @@ var shift_strings = function(side, shape, datatype){
             str = data[i][2].trim()
             diff = max_string_length - str.length
             res = ''
-            for (var j = 0; j<diff; j++) res += ' '
+            if (datatype != 'schedule_recurrent') for (var j = 0; j<diff; j++) res += ' '
             
             if (shape == 'circle'){
                 if (i < data.length / 2) label_array[i].content = str + res
@@ -89,7 +97,7 @@ var gen_line_points = function(){
 }
 
 
-var gen_line_text_coords = function(offset, second_set){
+var gen_line_text_coords = function(offset, second_set, proportional){
    var cur_points = [];
    if (offset == undefined) offset = -50
    var space_between_points = parseInt(line_w / data.length)
@@ -102,12 +110,28 @@ var gen_line_text_coords = function(offset, second_set){
         })
        }
     } else if (datatype == 'history'){
-       for (i in data) {
-           cur_points.push({
-               coords: new Point(padding_h/2 + i*space_between_points - (!second_set? 120 : 0), line_y + offset),
-           rotation: 45
-        })
-       }
+        if (proportional){
+            for (i in data) {
+                var min_year = Math.min.apply(0, data.map(function(d){return d[0]}))
+                var max_year = Math.max.apply(0, data.map(function(d){return d[0]}))
+                var date_diff = max_year - min_year
+                var this_x = line_w * (data[i][0] - min_year)/date_diff
+
+                console.log(this_x)
+
+                cur_points.push({
+                    coords: new Point(padding_h/2 + this_x, line_y + offset),
+                rotation: 45
+                })
+            }
+        } else {
+            for (i in data) {
+                cur_points.push({
+                    coords: new Point(padding_h/2 + i*space_between_points, line_y + offset),
+                rotation: 45
+                })
+            }
+        }
     
     } else {
         for (i in data) {
@@ -142,7 +166,7 @@ var gen_circle_text_coords = function (radius, second_set) {
     var cur_points = []
 
     if (radius == undefined) radius = start_radius + 160;
-    if (!second_set && datatype == 'history') shift_strings('left', 'circle')
+    if (!second_set && datatype == 'history') shift_strings('left', 'circle', 'history')
 
     for (i in data) cur_points.push({ 
             coords: new Point(
@@ -244,26 +268,19 @@ var draw_moon = function(){
 }
 
 var draw_schedule = function(){
-    datatype = 'schedule';
+    datatype = 'schedule_recurrent';
     init()
 }
 
-
-var compute_date_diff = function(date1, date2){
-    var date1 = new Date(date1);
-    var date2 = new Date(date2);
-    var timeDiff = Math.abs(date2.getTime() - date1.getTime());
-    var diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24)); 
-    return diffDays;
-}
-
-
 var compute_event_start_end = function(h_start, h_end, dataline){
     var date_diff = compute_date_diff(data[0][1], data[data.length - 1][1]) + 1
+
     var this_date_x = line_w * compute_date_diff(dataline[1], data[0][1]) / date_diff
+
     var hour_start = h_start.split(':')[0] + h_start.split(':')[1]
     var this_event_x = this_date_x + hour_start * (line_w/date_diff) / 2400
     var hour_end = h_end.split(':')[0] + h_end.split(':')[1]
+
     if (dataline[2] == 'Sleep') hour_end = parseInt(hour_start) + parseInt(hour_end)
 
     var this_event_x2 = this_date_x + hour_end * (line_w/date_diff) / 2400 + 0.1
@@ -280,16 +297,30 @@ var compute_circle_coords = function(point, day, h_start, h_end, dataline){
 
     cur_points.push(
         new Point(
-            width/2 + Math.cos(2 * Math.PI * event_boundaries[0] / 850) * radius, 
-            height/2 + Math.sin(2 * Math.PI * event_boundaries[0] / 850) * radius))
+            width/2 + Math.cos(2 * Math.PI * (event_boundaries[0]) / 850) * radius, 
+            height/2 + Math.sin(2 * Math.PI * (event_boundaries[0]) / 850) * radius))
+
+    cur_points.push(
+        new Point(
+            width/2 + Math.cos(2 * Math.PI * (event_boundaries[1]*0.25 + event_boundaries[0]*0.75) / 850) * radius, 
+            height/2 + Math.sin(2 * Math.PI * (event_boundaries[1]*0.25 + event_boundaries[0]*0.75) / 850) * radius))
+
     cur_points.push(
         new Point(
             width/2 + Math.cos(2 * Math.PI * (event_boundaries[1] + event_boundaries[0])*0.5 / 850) * radius, 
             height/2 + Math.sin(2 * Math.PI * (event_boundaries[1] + event_boundaries[0])*0.5 / 850) * radius))
+    
+    cur_points.push(
+        new Point(
+            width/2 + Math.cos(2 * Math.PI * (event_boundaries[1]*0.75 + event_boundaries[0]*0.25) / 850) * radius, 
+            height/2 + Math.sin(2 * Math.PI * (event_boundaries[1]*0.75 + event_boundaries[0]*0.25) / 850) * radius))
+    
+
     cur_points.push(
         new Point(
             width/2 + Math.cos(2 * Math.PI * event_boundaries[1] / 850)*radius, 
             height/2 + Math.sin(2 * Math.PI * event_boundaries[1] / 850)*radius))
+            
     return cur_points
 }
 
@@ -370,7 +401,7 @@ var gen_text_coords_for_schedule = function(){
 var gen_circle_text_coords_for_schedule = function(){
     var cur_points = [];
 
-    var radius = start_radius + 120
+    var radius = start_radius + 150
 
     for (i in data) {
         var event_boundaries = compute_event_start_end(data[i][3], data[i][4], data[i])
@@ -388,129 +419,113 @@ var gen_circle_text_coords_for_schedule = function(){
 }
 
 
-var draw = function(){
-
-    // cleanup
+var cleanup = function(){
     if (path != undefined) path.remove()
     for (i in label_array) label_array[i].remove()
     for (i in label_array2) label_array2[i].remove()
+    for (i in schedule_paths) schedule_paths[i].remove()
+    for (i in schedule_smalltexts) schedule_smalltexts[i].remove()
+
 
     label_array = []
     label_array2 = []
     text_coords = []
     text_coords2 = []
+}
 
+
+var init_general_resources = function(){
     prev_color = colors[parseInt(Math.random()*colors.length)];
     new_color = colors[parseInt(Math.random()*colors.length)];
 
     path = new Path();
     path.strokeColor = prev_color 
-    path.strokeWidth = 30;
+    path.strokeWidth = 15;
     path.strokeCap = 'round';
-    
-    if (datatype == 'history'){
-        var maxdistance = data[data.length - 1][0] - data[0][0]
-        for (var i = 0; i < data.length; i++){
-            node_distances.push((data[i][0] - data[0][0]))
-        }
-    }
+}
+
+
+
+
+var init_schedule_elements = function(){
+    cleanup()
+    init_general_resources()
 
     points = gen_circle_points()
     text_coords = gen_circle_text_coords_for_schedule()
-    if (datatype == 'schedule_recurrent') text_coords2 = gen_circle_text_coords_for_schedule_hours()
-    if (datatype == 'history') text_coords2 = gen_line_text_coords(40, true)
-    
+    text_coords2 = gen_circle_text_coords_for_schedule_hours()
+
     for (i in points) {
         path.add(points[i]);
-       
-        if (datatype == 'moon'){
-            img = new Raster({
-                source: 'res/' + i%8 + '.png',
-                position: new Point(points[i].x, points[i].y - 70)
-            })
-            img.scale(0.08)
-            label_array.push(img)
 
-            text = new PointText(text_coords[i].coords);
-            text.style.justification = 'center';
-            text.fillColor = 'black';
-            text.fontFamily = 'monospace'
-            text.fontSize = 18
+        new_path = new Path()
+        new_path.strokeColor = colormap[data[i][2]]
+        new_path.strokeWidth = 10
+        new_path.strokeCap = 'round'
 
-            label_array2.push(text)
-            
-            text.content = data[i][1] + '\n' + data[i][2];
+        coords = compute_circle_coords(points[i], data[i][1], data[i][3], data[i][4], data[i])
 
-        } else if (datatype == 'history'){
-            text = new PointText(text_coords[i].coords);
-            text.style.justification = 'center';
-            text.fillColor = 'black';
-            text.fontFamily = 'monospace'
-            text.fontSize = 19
+        for (elem in coords) new_path.add(coords[elem])
 
-            label_array.push(text)
-            
-            text.content = data[i][1];
-            text.rotation = text_coords[i].rotation
+        schedule_paths.push(new_path)
 
-            text = new PointText(text_coords2[i].coords);
-            text.justification = 'center';
-            text.fillColor = 'black';
-            text.fontSize = 16
-            text.style.fontWeight = 'bold'
+        label_array.push(gentext(text_coords[i].coords, data[i][3] + data[i][2], 'big', text_coords[i].rotation))
+        schedule_smalltexts.push(gentext(text_coords2[i*2].coords, data[i][3], 'small', text_coords2[i*2].rotation))
+        schedule_smalltexts.push(gentext(text_coords2[i*2 + 1].coords, data[i][4], 'small', text_coords2[i*2 + 1].rotation))
 
-            text.content = data[i][0];
-            text.rotation = text_coords2[i].rotation
-
-            label_array2.push(text)
-        } else if (datatype == 'schedule_non_recurrent' || datatype == 'schedule_recurrent'){
-
-            new_path = new Path()
-            new_path.strokeColor = colors[parseInt(Math.random() * colors.length)]
-            new_path.strokeWidth = 20
-            new_path.strokeCap = 'round'
-
-            coords = compute_circle_coords(points[i], data[i][1], data[i][3], data[i][4], data[i])
-
-            for (elem in coords) new_path.add(coords[elem])
-
-            schedule_paths.push(new_path)
-
-            text = new PointText(text_coords[i].coords);
-            text.style.justification = 'center';
-            text.fillColor = 'black';
-            text.fontFamily = 'monospace'
-            text.fontSize = 18
-
-            label_array.push(text)
-            
-            text.content = data[i][3] + data[i][2];
-            text.rotation = text_coords[i].rotation
-
-            text = new PointText(text_coords2[i*2].coords);
-            text.style.justification = 'center';
-            text.fillColor = 'black';
-            text.fontFamily = 'monospace'
-            text.fontSize = 12
-
-            text.content = data[i][3]
-            text.rotation = text_coords2[i*2].rotation
-
-            text = new PointText(text_coords2[i*2 + 1].coords);
-            text.style.justification = 'center';
-            text.fillColor = 'black';
-            text.fontFamily = 'monospace'
-            text.fontSize = 12
-
-            text.content = data[i][4]
-            text.rotation = text_coords2[i*2 + 1].rotation
-        }
     }
-    
-    shift_strings('right', 'line', 'schedule')
+
+    shift_strings('right', 'circle', 'schedule')
+
+    path.closed = true
+    path.smooth()
+
+}
+
+
+var init_history_elements = function(){
+    cleanup()
+    init_general_resources()
+
+    points = gen_line_points()
+    text_coords = gen_line_text_coords(-90, false, true)
+    text_coords2 = gen_line_text_coords(30, true, true)
+
+    for (i in points){
+        path.add(points[i]);
+        label_array.push(gentext(text_coords[i].coords, data[i][1], 'big', text_coords[i].rotation))
+        label_array2.push(gentext(text_coords2[i].coords, data[i][0], 'small', text_coords2[i].rotation, 'bold'))
+    }
 
     path.smooth()
+    shift_strings('right', 'line', 'history')
+}
+
+
+var init_moon_elements = function(){
+    cleanup()
+    init_general_resources()
+
+    points = gen_circle_points()
+    text_coords = gen_circle_text_coords(undefined, false)
+    text_coords2 = gen_circle_text_coords(start_radius + 80, true)
+
+    for (i in points) {
+        // load pictures
+        path.add(points[i]);
+        img = new Raster({
+            source: 'res/' + i%8 + '.png',
+            position: text_coords[i].coords
+        })
+        img.scale(0.08)
+        label_array.push(img)
+
+        // generate labels
+        label_array2.push(gentext(text_coords2[i].coords, data[i][1] + '\n' + data[i][2], 'big', text_coords2[i].rotation))
+    }
+
     path.closed = true
+    path.smooth()
 }
 
 
@@ -606,7 +621,7 @@ var load_history = function(){
             }
             
             if (true){
-                start_date = 900
+                start_date = Math.min.apply(0, function(d){return d[0]})
                 interval_value = 10
                 cur_date = start_date
                 end_date = Math.ceil(Math.max.apply(0, data.map(function(d){return d[0]}))/100) * 100
@@ -617,28 +632,34 @@ var load_history = function(){
                 }
             }
             
-            draw()
+            init_history_elements()
         }
     })
 }
+
 
 var load_schedule_recurrent = function(){
     Papa.parse('data/scheduler.csv', {
         download: true,
         dynamicTyping: true,
         complete: function(results) {
+            // remove first line of csv
             data = results.data.splice(1, results.data.length);
 
-            // fixed data formatting
-            for (i in data){
-                data[i][1] = data[i][1].split('/')[1] + '/' + data[i][1].split('/')[0] + '/2018'
-            }
-            if (true){ data = data.splice(0, 16)}
-            data = data.filter(function(d){return d[2] != 'Wake up'})
-            //if (true){ data = data.splice(0, 30)}
-            console.log(data)
+            // fix date formatting
+            data = fix_date_formatting(data)
 
-            draw()
+            //remove wake up event
+            data = data.filter(function(d){return d[2] != 'Wake up'})
+            data = data.filter(function(d){return d[2] != 'Lunch'})
+
+            // generate colormap to have the colors fixed for each event
+            colormap = generate_colormap(data, colors)
+
+            // limit amount of data
+            data = data.splice(0, 20)
+
+            init_schedule_elements()
         }
     })
 }
@@ -650,8 +671,10 @@ var load_schedule_non_recurrent = function(){
         dynamicTyping: true,
         complete: function(results) {
             data = results.data.splice(1, results.data.length);
-            console.log(data)
-            draw()
+
+
+
+            init_schedule_elements()
         }
     })
 }
@@ -677,7 +700,7 @@ var load_moon = function(){
         ['u1F318', 'waning\ncrescent', '11/03']
     ]
 
-    draw()
+    init_moon_elements()
 }
 
 
