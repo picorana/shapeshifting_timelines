@@ -38,6 +38,7 @@ var gen_circle_text_coords_for_schedule = function(radius){
     return cur_points
 }
 
+
 var gen_spiral_text_coords_for_schedule = function(radius){
     var cur_points = [];
 
@@ -71,6 +72,7 @@ var gen_spiral_text_coords_for_schedule = function(radius){
     return cur_points
 }
 
+
 var add_spiral_weekday_names = function(){
     var cur_date = data[0][1]
     var text_coords3 = gen_spiral_text_coords_for_schedule(start_radius + 250)
@@ -83,6 +85,7 @@ var add_spiral_weekday_names = function(){
         } 
     }
 }
+
 
 var add_circle_weekday_names = function(){
     var cur_date = data[0][1]
@@ -213,8 +216,8 @@ var compute_event_start_end = function(dataline){
     return [this_event_x, this_event_x2]
 }
 
-var compute_circle_coords = function(point, day, h_start, h_end, dataline){
-    var v_offset = 50
+var compute_circle_coords = function(dataline){
+    var offset = 50
     var cur_points = [];
     var event_boundaries = compute_event_start_end(dataline)
     var radius = start_radius + 40
@@ -326,6 +329,29 @@ var gen_spiral_points_for_schedule = function(proportional, radius_decrease_rate
 }
 
 
+var gen_schedule_paths = function(points, shapetype){
+    var result = []
+    for (i in points){
+
+        new_path = new Path()
+        if (i < data.length) new_path.strokeColor = colormap[data[i%data.length][2]]
+        new_path.strokeWidth = 10
+        new_path.strokeCap = 'round'
+
+        if (shapetype == 'line') coords = compute_line_coords(points[i], data[i][1], data[i][3], data[i][4], data[i])
+        else if (shapetype == 'circle') coords = compute_circle_coords(data[i])
+        else if (i < data.length) coords = compute_spiral_coords(points[i], data[i][1], data[i][3], data[i][4], data[i])
+
+        for (elem in coords) new_path.add(coords[elem])
+
+        new_path.smooth()
+
+        result.push(new_path)
+    }
+    return result
+}
+
+
 var init_schedule_elements = function(){
     cleanup()
     init_general_resources()
@@ -334,35 +360,21 @@ var init_schedule_elements = function(){
         points = gen_line_points()
         text_coords = gen_text_coords_for_schedule(-200)
         text_coords2 = gen_line_text_coords_for_schedule_hours()
+        schedule_paths = gen_schedule_paths(points, 'line')
     } else if (shapetype == 'circle'){
         points = gen_circle_points()
-        text_coords = gen_circle_text_coords_for_schedule()
+        text_coords = gen_circle_text_coords_for_schedule(550)
         text_coords2 = gen_circle_text_coords_for_schedule_hours()
+        schedule_paths = gen_schedule_paths(points, 'circle')
     } else if (shapetype == 'spiral'){
         points = gen_spiral_points_for_schedule(false, 20)
         text_coords = gen_spiral_text_coords_for_schedule()
         text_coords2 = gen_spiral_text_coords_for_schedule_hours()
+        schedule_paths = gen_schedule_paths(points, 'spiral')
     }
 
     for (i in points) {
         path.add(points[i]);
-
-        new_path = new Path()
-        if (i < data.length) new_path.strokeColor = colormap[data[i][2]]
-        new_path.strokeWidth = 10
-        new_path.strokeCap = 'round'
-
-
-        if (shapetype == 'line') coords = compute_line_coords(points[i], data[i][1], data[i][3], data[i][4], data[i])
-        else if (shapetype == 'circle') coords = compute_circle_coords(points[i], data[i][1], data[i][3], data[i][4], data[i])
-        else if (i < data.length) coords = compute_spiral_coords(points[i], data[i][1], data[i][3], data[i][4], data[i])
-
-        for (elem in coords) new_path.add(coords[elem])
-
-        new_path.smooth()
-
-        schedule_paths.push(new_path)
-
     }
 
     for (i in data){

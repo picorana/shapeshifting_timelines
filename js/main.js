@@ -24,7 +24,7 @@ var start_radius = line_w * 0.10;
 
 var node_distances = [];
 var datatype = 'schedule_recurrent';
-var shapetype = 'spiral';
+var shapetype = 'line';
 var label_array = [];
 var label_array2 = [];
 var text_coords = [];
@@ -302,6 +302,7 @@ var draw_line = function(){
     text_coords = gen_line_text_coords(-100, false)
     if (datatype == 'history') text_coords2 = gen_line_text_coords(70, true)
     if (datatype == 'moon') text_coords2 = gen_line_text_coords(-40, true)
+    if (datatype == 'schedule_recurrent') new_schedule_paths = gen_schedule_paths(new_points, 'line')
     path.closed = false
 }
 
@@ -438,6 +439,10 @@ var onFrame = function(event) {
         segment.point.y = segment.point.y + (new_points[i].y - segment.point.y)*anim_percent;
         segment.point.x = segment.point.x + (new_points[i].x - segment.point.x)*anim_percent;
     }
+
+    if (schedule_paths != undefined && new_schedule_paths !=undefined){
+        console.log('ole')
+    }
    
     path.smooth()
 
@@ -475,7 +480,7 @@ var load_history = function(){
 
 
 var load_schedule_recurrent = function(){
-    Papa.parse('data/scheduler.csv', {
+    Papa.parse('data/schedulenr.csv', {
         download: true,
         dynamicTyping: true,
         complete: function(results) {
@@ -492,7 +497,7 @@ var load_schedule_recurrent = function(){
             colormap = generate_colormap(data, colors)
 
             // limit amount of data
-            data = data.splice(0, 20)
+            data = data.splice(0, 17)
 
             init_schedule_elements()
         }
