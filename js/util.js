@@ -13,7 +13,7 @@ window.compute_date_diff = function(date1, date2){
 window.generate_colormap = function(data, colors){
     var colormap = {}
     for (i in data){
-        if (colormap[data[i][2]] == undefined) colormap[data[i][2]] = colors[parseInt(Math.random()*colors.length)]
+        if (colormap[data[i][2]] == undefined) colormap[data[i][2]] = colors[i%colors.length]
     }
     return colormap
 }
