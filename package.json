@@ -1,0 +1,26 @@
+{
+  "name": "shapeshifting_timelines",
+  "version": "1.0.0",
+  "description": "",
+  "main": "gulpfile.js",
+  "dependencies": {
+    "gulp": "^3.9.1",
+    "gulp-concat": "^2.6.1",
+    "papaparse": "^4.6.1",
+    "paper": "^0.11.8"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/picorana/shifting_timelines.git"
+  },
+  "author": "Sara Di Bartolomeo",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/picorana/shifting_timelines/issues"
+  },
+  "homepage": "https://github.com/picorana/shifting_timelines#readme"
+}
