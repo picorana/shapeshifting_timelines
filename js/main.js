@@ -1,6 +1,7 @@
 var data;
-var width = document.getElementById('thecanvas').width
-var height = document.getElementById('thecanvas').height
+var canvas = document.getElementById('thecanvas'); 
+var width = canvas.width
+var height = canvas.height
 var padding_h = 500
 var animation_duration = 50;
 var last_click_frame = 0;
@@ -9,6 +10,8 @@ var path;
 
 var big_text_font_size = 16;
 var small_text_font_size = 14;
+var big_line_stroke_size = 30;
+var small_lines_stroke_size = 15;
 
 var colors = ['#ECD078', '#D95b43', '#C02942', '#542437', '#53777A'];
 var prev_color;
@@ -24,12 +27,14 @@ var start_radius = line_w * 0.10;
 
 var node_distances = [];
 var datatype = 'schedule_recurrent';
-var shapetype = 'line';
+var shapetype = 'circle';
 var label_array = [];
 var label_array2 = [];
+var label_array3 = [];
 var text_coords = [];
 var text_coords2 = [];
 var text_coords3 = [];
+var schedule_paths_coords = [];
 var schedule_paths = [];
 var schedule_smalltexts = [];
 
@@ -284,6 +289,7 @@ var draw_circle = function(){
     else if (datatype == 'moon') text_coords2 = gen_circle_text_coords(start_radius + 80, true)
     else if (datatype == 'schedule_recurrent'){
         // not working
+        new_schedule_paths = gen_schedule_paths(new_points, 'circle')
         text_coords = gen_circle_text_coords_for_schedule()
         text_coords2 = gen_circle_text_coords_for_schedule_hours()
     }
@@ -302,7 +308,12 @@ var draw_line = function(){
     text_coords = gen_line_text_coords(-100, false)
     if (datatype == 'history') text_coords2 = gen_line_text_coords(70, true)
     if (datatype == 'moon') text_coords2 = gen_line_text_coords(-40, true)
-    if (datatype == 'schedule_recurrent') new_schedule_paths = gen_schedule_paths(new_points, 'line')
+    if (datatype == 'schedule_recurrent') {
+        text_coords = gen_line_text_coords_for_schedule(-250, 1)
+        //text_coords2 = gen_line_text_coords_for_schedule(-80, 2)
+        new_schedule_paths = gen_schedule_paths(new_points, 'line')
+        text_coords3 = gen_line_text_coords_for_schedule()
+    }
     path.closed = false
 }
 
@@ -323,7 +334,10 @@ var draw_spiral = function(){
     else if (datatype == 'moon'){
         text_coords2 = gen_spiral_text_coords(60)
     } else if (datatype == 'schedule_recurrent'){
-
+        new_points = gen_spiral_points_for_schedule(false, 20)
+        text_coords = gen_spiral_text_coords_for_schedule()
+        text_coords3 = gen_spiral_text_coords_for_schedule(start_radius + 250)
+        new_schedule_paths = gen_schedule_paths(new_points, 'spiral')
     }
     path.closed = false
     path.smooth()
@@ -366,7 +380,7 @@ var init_general_resources = function(){
 
     path = new Path();
     path.strokeColor = prev_color 
-    path.strokeWidth = 20;
+    path.strokeWidth = big_line_stroke_size;
     path.strokeCap = 'round';
 }
 
@@ -393,6 +407,14 @@ var move_labels = function(){
         if (text_coords2 != undefined && text_coords2.length > 0 && label_array2[i] != undefined){
             label_array2[i].position = text_coords2[i].coords
             label_array2[i].rotation = text_coords2[i].rotation
+        }
+    }
+
+    console.log(label_array3)
+    if (label_array3 != undefined){
+        if (text_coords3 != undefined && text_coords3.length > 0 && label_array3[i] != undefined){
+            label_array3[i].position = text_coords3[i].coords
+            label_array3[i].rotation = text_coords3[i].rotation
         }
     }
 }
@@ -434,14 +456,33 @@ var onFrame = function(event) {
         }
     }
 
+        if (label_array3 != undefined){
+        for (i in label_array3){
+            //if (label_array2[i] == undefined) break
+            if (anim_percent < 0.5) {
+                label_array3[i].fillColor.alpha = - anim_percent * 2
+            }
+            else if (anim_percent == 0.5) move_labels()
+            else {
+                label_array3[i].fillColor.alpha = anim_percent*2 - 0.5
+            }
+        }
+    }
+
     for (var i = 0; i < data.length; i++){
         var segment = path.segments[i];
         segment.point.y = segment.point.y + (new_points[i].y - segment.point.y)*anim_percent;
         segment.point.x = segment.point.x + (new_points[i].x - segment.point.x)*anim_percent;
     }
 
-    if (schedule_paths != undefined && new_schedule_paths !=undefined){
-        console.log('ole')
+    if (schedule_paths != undefined && new_schedule_paths != undefined){
+        for (i in schedule_paths){
+            for (j in schedule_paths[i].segments){
+                var segment = schedule_paths[i].segments[j];
+                segment.point.y = segment.point.y + (new_schedule_paths[i][j].y - segment.point.y)*anim_percent;
+                segment.point.x = segment.point.x + (new_schedule_paths[i][j].x - segment.point.x)*anim_percent;
+            }
+        }
     }
    
     path.smooth()
@@ -561,10 +602,12 @@ var init = function(){
 
 }
 
+
 document.getElementById('circle_btn').onclick = draw_circle
 document.getElementById('line_btn').onclick = draw_line
 document.getElementById('spiral_btn').onclick = draw_spiral
 document.getElementById('history_btn').onclick = draw_history
 document.getElementById('moon_btn').onclick = draw_moon
 document.getElementById('schedule_btn').onclick = draw_schedule
+document.getElementById('screenshot_btn').onclick = function(){console.log('taking screenshot'); document.write('<img src="'+canvas.toDataURL('png')+'"/>');}
 init()
