@@ -30,6 +30,8 @@ var shift_strings_history = function(side, shape, datatype){
         if (shape == 'circle'){
             if (i < data.length / 2) label_array[i].content = str + res
             else label_array[i].content = res + str
+
+            if (data[i][1] == 'tax hike' || data[i][1] == 'cellics invasion') label_array[i].content = str + res
             
         } else if (shape == 'spiral'){
             if (text_coords[i].rotation % 360 >= 180 && text_coords[i].rotation % 360 < 270) {label_array[i].content = str + res; console.log('aa')}

@@ -8,8 +8,8 @@ var last_click_frame = 0;
 var cur_frame = 0;
 var path;
 
-var big_text_font_size = 16;
-var small_text_font_size = 14;
+var big_text_font_size = 22;
+var small_text_font_size = 18;
 var big_line_stroke_size = 30;
 var small_lines_stroke_size = 15;
 
@@ -20,14 +20,14 @@ var new_color;
 var points;
 var new_points;
 
-var line_y = height/2 - 180;
+var line_y = height/2 - 170;
 var line_w = width - padding_h;
 // start radius was line_w * 0.15 on 4k display
-var start_radius = line_w * 0.10; 
+var start_radius = line_w * 0.17; 
 
 var node_distances = [];
-var datatype = 'schedule_recurrent';
-var shapetype = 'circle';
+var datatype = 'schedule';
+var shapetype = 'spiral';
 var label_array = [];
 var label_array2 = [];
 var label_array3 = [];
@@ -37,6 +37,7 @@ var text_coords3 = [];
 var schedule_paths_coords = [];
 var schedule_paths = [];
 var schedule_smalltexts = [];
+var new_schedule_paths = [];
 
 var max_dates_in_history = 20;
 var colormap = {}
@@ -283,7 +284,7 @@ var draw_circle = function(){
     new_points = gen_circle_points()
     text_coords = gen_circle_text_coords(undefined, false)
     if (datatype == 'history') {
-        text_coords = gen_circle_text_coords(undefined, false, true)
+        text_coords = gen_circle_text_coords(start_radius + 180, false, true)
         text_coords2 = gen_circle_text_coords(start_radius - 50, true, true)
     }
     else if (datatype == 'moon') text_coords2 = gen_circle_text_coords(start_radius + 80, true)
@@ -327,7 +328,7 @@ var draw_spiral = function(){
     text_coords = gen_spiral_text_coords(140)
     if (datatype == 'history') {
         new_points = gen_spiral_points()
-        text_coords = gen_spiral_text_coords(100, false, true)
+        text_coords = gen_spiral_text_coords(140, false, true)
         text_coords2 = gen_spiral_text_coords( - 80, true, true)
         shift_strings('whatever', 'spiral', 'history')
     }
@@ -363,6 +364,7 @@ var cleanup = function(){
     if (path != undefined) path.remove()
     for (i in label_array) label_array[i].remove()
     for (i in label_array2) label_array2[i].remove()
+    for (i in label_array3) label_array3[i].remove()
     for (i in schedule_paths) schedule_paths[i].remove()
     for (i in schedule_smalltexts) schedule_smalltexts[i].remove()
 
@@ -538,7 +540,7 @@ var load_schedule_recurrent = function(){
             colormap = generate_colormap(data, colors)
 
             // limit amount of data
-            data = data.splice(0, 17)
+            data = data.splice(0, 14)
 
             init_schedule_elements()
         }
@@ -558,6 +560,32 @@ var load_schedule_non_recurrent = function(){
             init_schedule_elements()
         }
     })
+}
+
+var init_moon_elements = function(){
+    cleanup()
+    init_general_resources()
+
+    points = gen_circle_points()
+    text_coords = gen_circle_text_coords(start_radius + 100, false)
+    text_coords2 = gen_circle_text_coords(start_radius + 150, true)
+
+    for (i in points) {
+        // load pictures
+        path.add(points[i]);
+        img = new Raster({
+            source: 'res/' + i%8 + '.png',
+            position: text_coords[i].coords
+        })
+        img.scale(0.08)
+        label_array.push(img)
+
+        // generate labels
+        label_array2.push(gentext(text_coords2[i].coords, data[i][1] + '\n' + data[i][2], 'big', text_coords2[i].rotation))
+    }
+
+    path.closed = true
+    path.smooth()
 }
 
 
