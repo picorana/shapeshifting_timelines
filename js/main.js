@@ -22,7 +22,6 @@ var new_points;
 
 var line_y = height/2 - 170;
 var line_w = width - padding_h;
-// start radius was line_w * 0.15 on 4k display
 var start_radius = line_w * 0.17; 
 
 var node_distances = [];

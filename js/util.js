@@ -1,7 +1,9 @@
+// reverses month and day if date is in european format
 fix_date_formatting = function(data){
     return data.map(function(d){return [d[0], d[1].split('/')[1] + '/' + d[1].split('/')[0] + '/2018', d[2], d[3], d[4]]})
 }
 
+// computes the difference between two dates in days. Doesn't care about the month!
 compute_date_diff = function(date1, date2){
     var date1 = new Date(date1);
     var date2 = new Date(date2);
@@ -18,6 +20,7 @@ generate_colormap = function(data, colors){
     return colormap
 }
 
+// generates a text element
 gentext = function(coords, content, size, rotation, weight){
     text = new PointText(coords);
     text.style.justification = 'center';
@@ -32,6 +35,7 @@ gentext = function(coords, content, size, rotation, weight){
     return text
 }
 
+// passes from one color to the other according to a percentage that goes from 0 to 1
 easeColor = function(prev_color, new_color, anim_percent){
     prev_rgb = new Color(prev_color)
     new_rgb = new Color(new_color)
