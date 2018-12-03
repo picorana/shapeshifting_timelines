@@ -1,7 +1,7 @@
 
 
 
-var gen_circle_text_coords_for_schedule = function(radius){
+var gen_circle_text_coords_for_schedule = function(radius, ortho){
     var cur_points = [];
 
     if (radius == undefined) var radius = start_radius + 150
@@ -16,7 +16,7 @@ var gen_circle_text_coords_for_schedule = function(radius){
            coords: new Point(
                 width/2 + Math.cos(2 * Math.PI * this_x / d_factor) * radius, 
                 height/2 + Math.sin(2 * Math.PI * this_x / d_factor) * radius),
-           rotation: ((this_x > d_factor/2? Math.PI : 0) +2 * Math.PI * this_x/d_factor) * 180 / Math.PI
+           rotation: ((this_x > d_factor/2? Math.PI : 0) + (ortho? Math.PI/2 : 0) + 2 * Math.PI * this_x/d_factor) * 180 / Math.PI
         })
     }
 
@@ -24,7 +24,7 @@ var gen_circle_text_coords_for_schedule = function(radius){
 }
 
 
-var gen_spiral_text_coords_for_schedule = function(radius, offset){
+var gen_spiral_text_coords_for_schedule = function(radius, offset, ortho){
     var cur_points = [];
 
     if (radius == undefined) var radius = start_radius + 400
@@ -43,7 +43,7 @@ var gen_spiral_text_coords_for_schedule = function(radius, offset){
                 width/2 + Math.cos(4 * Math.PI * this_x / d_factor) * (radius + offset), 
                 line_y + Math.sin(4 * Math.PI * this_x / d_factor) * (radius + offset)
                 ),
-           rotation: (4 * Math.PI * this_x / d_factor) * 180 / Math.PI
+           rotation: (ortho ? 90 : 0) + (4 * Math.PI * this_x / d_factor) * 180 / Math.PI
         })
     }
 
@@ -92,12 +92,6 @@ var gen_circle_text_coords_for_schedule_hours = function(offset){
     for (i in data) {
         var event_boundaries = compute_event_start_end(data[i])
 
-        /*
-        if (event_boundaries[1] - event_boundaries[0] > 10) {
-            event_boundaries[0] -= 5
-            event_boundaries[1] += 5
-        }*/
-
         var this_x = (event_boundaries[0] + event_boundaries[1])*0.5
 
         cur_points.push({
@@ -128,12 +122,6 @@ var gen_spiral_text_coords_for_schedule_hours = function(){
     for (i in data) {
         
         var event_boundaries = compute_event_start_end(data[i])
-
-/*
-        if (event_boundaries[1] - event_boundaries[0] > 10) {
-            event_boundaries[0] -= 5
-            event_boundaries[1] += 5
-        }*/
 
         var this_x = (event_boundaries[0] + event_boundaries[1])*0.5
 
@@ -272,11 +260,8 @@ var compute_spiral_coords = function(point, day, h_start, h_end, dataline){
 var gen_spiral_points_for_schedule = function(proportional, radius_decrease_rate){
     var cur_points = []
     var radius = start_radius + 400;
-    var anglestep = 360/data.length;
-    if (proportional == undefined) proportional = false
-    if (radius_decrease_rate == undefined) radius_decrease_rate = 60;
 
-    for (var i = 0; i< data.length + 3; i++) {
+    for (var i = 0; i< data.length /* +3 */; i++) {
         radius = radius - radius_decrease_rate;
             cur_points.push(
             new Point(
@@ -329,12 +314,6 @@ var gen_line_text_coords_for_schedule = function(v_offset, numdivision){
     for (i in data) {
         var event_boundaries = compute_event_start_end(data[i])
 
-        /*
-        if (event_boundaries[1] - event_boundaries[0] > 10) {
-            event_boundaries[0] -= 5
-            event_boundaries[1] += 5
-        }*/
-
         if (numdivision == 1){
             var this_x = event_boundaries[0]*0.5 + event_boundaries[1]*0.5
 
@@ -384,7 +363,7 @@ var init_schedule_elements = function(){
         schedule_paths_coords = gen_schedule_paths(points, 'line')
     } else if (shapetype == 'circle'){
         points = gen_circle_points()
-        text_coords = gen_circle_text_coords_for_schedule(680)
+        text_coords = gen_circle_text_coords_for_schedule(870)
         text_coords2 = gen_circle_text_coords_for_schedule_hours(10)
         schedule_paths_coords = gen_schedule_paths(points, 'circle')
     } else if (shapetype == 'spiral'){
@@ -418,38 +397,12 @@ var init_schedule_elements = function(){
     else if (shapetype == 'circle') add_circle_weekday_names()
     else add_spiral_weekday_names()
 
-    shift_strings('right', 'circle', 'schedule')
+    shift_strings_schedule()
 
     if (shapetype == 'circle') path.closed = true
     else path.closed = false
     path.smooth()
 
-}
-
-
-var load_schedule_recurrent = function(){
-    Papa.parse('data/schedulenr.csv', {
-        download: true,
-        dynamicTyping: true,
-        complete: function(results) {
-            // remove first line of csv
-            data = results.data.splice(1, results.data.length);
-
-            // fix date formatting
-            data = fix_date_formatting(data)
-
-            //remove wake up event
-            data = data.filter(function(d){return d[2] != 'Wake up'})
-
-            // generate colormap to have the colors fixed for each event
-            colormap = generate_colormap(data, colors)
-
-            // limit amount of data
-            data = data.splice(0, 14)
-
-            init_schedule_elements()
-        }
-    })
 }
 
 
@@ -463,4 +416,25 @@ var load_schedule_non_recurrent = function(){
             init_schedule_elements()
         }
     })
+}
+
+
+var shift_strings_schedule = function(){
+
+    var max_string_length = Math.max.apply(0, data.map(function(d){return d[2].length}))
+        
+    for (i in data){
+        str = data[i][2].trim()
+        diff = max_string_length - str.length
+        res = ''
+        for (var j = 0; j<diff; j++) res += ' '
+    
+        var event_boundaries = compute_event_start_end(data[i])
+        var d_factor = compute_total_schedule_length()
+        
+        //if ((event_boundaries[0] + event_boundaries[1])*0.5 > d_factor * 0.5) label_array[i].content = res + str
+        //else label_array[i].content = str + res
+
+        label_array[i].content = str
+    }
 }
