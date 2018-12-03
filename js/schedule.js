@@ -36,13 +36,6 @@ var gen_spiral_text_coords_for_schedule = function(radius, offset){
         var event_boundaries = compute_event_start_end(data[i])
         var this_x = (event_boundaries[0] + event_boundaries[1])*0.5
 
-        /*
-        if (i != 0) {
-            var event_boundaries2 = compute_event_start_end(data[i-1])
-            var this_x2 = (event_boundaries[0] + event_boundaries[1])*0.5
-            radius = radius - 20*(this_x - this_x2)/(d_factor/data.length);
-        } else radius = radius - 20 */
-
         radius = (start_radius + 400 + offset - i * 10) - radius_decrease_rate*this_x/(d_factor/data.length);
 
         cur_points.push({
@@ -431,4 +424,43 @@ var init_schedule_elements = function(){
     else path.closed = false
     path.smooth()
 
+}
+
+
+var load_schedule_recurrent = function(){
+    Papa.parse('data/schedulenr.csv', {
+        download: true,
+        dynamicTyping: true,
+        complete: function(results) {
+            // remove first line of csv
+            data = results.data.splice(1, results.data.length);
+
+            // fix date formatting
+            data = fix_date_formatting(data)
+
+            //remove wake up event
+            data = data.filter(function(d){return d[2] != 'Wake up'})
+
+            // generate colormap to have the colors fixed for each event
+            colormap = generate_colormap(data, colors)
+
+            // limit amount of data
+            data = data.splice(0, 14)
+
+            init_schedule_elements()
+        }
+    })
+}
+
+
+var load_schedule_non_recurrent = function(){
+    Papa.parse('data/schedulenr.csv', {
+        download: true,
+        dynamicTyping: true,
+        complete: function(results) {
+            data = results.data.splice(1, results.data.length);
+
+            init_schedule_elements()
+        }
+    })
 }

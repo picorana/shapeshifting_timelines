@@ -1,10 +1,80 @@
+// history parameters
+var add_placeholder_dates = false;
+var max_dates_in_history = 20;
+
+
+// loads history csv file and manipulates it based on the previous parameters
+var load_history = function(){
+    Papa.parse('data/history.csv', {
+        download: true,
+        dynamicTyping: true,
+        complete: function(results) {
+            data = results.data.splice(1, results.data.length);
+            
+            // cut dates over max_dates_in_history
+            if (max_dates_in_history != undefined && max_dates_in_history != 0) data = data.splice(0, max_dates_in_history)
+            if (add_placeholder_dates == true) add_placeholder_dates(data, 10)
+
+            init_history_elements()
+        }
+    })
+}
+
+// adds a placeholder date every interval years
+var add_placeholder_dates = function(data, interval){
+    start_date = Math.min.apply(0, data.map(function(d){return d[0]}))
+    start_date = Math.round(start_date / 10) * 10
+    interval_value = interval
+    cur_date = start_date
+    end_date = Math.ceil(Math.max.apply(0, data.map(function(d){return d[0]}))/100) * 100
+    while (cur_date <= end_date){
+        // check if there aren't already events at that particular date that we are trying to insert
+        if (!data.some(function(d){return d[0] == cur_date}))  
+            data.splice(data.indexOf(data.find(function(d){return d[0] > cur_date})), 0, [cur_date, ''])
+        cur_date += interval_value
+    }
+
+}
+
+
+var gen_line_text_coords_for_history = function(offset, second_set, proportional) {
+    var cur_points = [];
+    if (offset == undefined) offset = -50
+    
+    if (proportional){
+        for (i in data) {
+            var min_year = Math.min.apply(0, data.map(function(d){return d[0]}))
+            var max_year = Math.max.apply(0, data.map(function(d){return d[0]}))
+            var date_diff = max_year - min_year + 20
+            var this_x = line_w * (data[i][0] - min_year)/date_diff
+
+            cur_points.push({
+                coords: new Point(padding_h/2 + this_x + (second_set?130:0), line_y + offset),
+                rotation: 45
+            })
+        }
+    } else {
+        var space_between_points = parseInt(line_w / data.length)
+
+        for (i in data) {
+            cur_points.push({
+                coords: new Point(padding_h/2 + i*space_between_points, line_y + offset),
+                rotation: 45
+            })
+        }
+    }
+
+    return cur_points;
+}
+
+
 var init_history_elements = function(){
     cleanup()
     init_general_resources()
 
     points = gen_line_points()
-    text_coords = gen_line_text_coords(-100, false, true)
-    text_coords2 = gen_line_text_coords(30, true, true)
+    text_coords = gen_line_text_coords_for_history(-100, false, true)
+    text_coords2 = gen_line_text_coords_for_history(30, true, true)
 
     for (i in points){
         path.add(points[i]);
@@ -15,6 +85,7 @@ var init_history_elements = function(){
     path.smooth()
     shift_strings_history('right', 'line', 'history')
 }
+
 
 var shift_strings_history = function(side, shape, datatype){
     for (i in data) data[i][1] = data[i][1].trim()
@@ -34,31 +105,33 @@ var shift_strings_history = function(side, shape, datatype){
             if (data[i][1] == 'tax hike' || data[i][1] == 'cellics invasion') label_array[i].content = str + res
             
         } else if (shape == 'spiral'){
-            if (text_coords[i].rotation % 360 >= 180 && text_coords[i].rotation % 360 < 270) {label_array[i].content = str + res; console.log('aa')}
-            else {label_array[i].content = res + str; console.log('bb')}
-            if (data[i][1] == 'tax hike' || data[i][1] == 'capitalism rises'|| data[i][1] == 'cellics invasion') label_array[i].content = str + res
-            if (data[i][1] == 'economic boom' || data[i][1] == 'end of bartering') label_array[i].content = res + str
+            if (text_coords[i].rotation % 360 > 90 && text_coords[i].rotation % 360 < 270) label_array[i].content = res + str
+            else label_array[i].content = str + res
         }
         else {
             if (side == 'right') label_array[i].content = res + str
             else label_array[i].content = str + res
         }
     }
+
+    fix_text_rotation(text_coords2)
+}
+
+
+var fix_text_rotation = function(textarray){
+    for (elem in textarray){
+        console.log(textarray[elem].rotation);
+        console.log(label_array2[elem].content)
+    }
 }
 var data;
 var canvas = document.getElementById('thecanvas'); 
 var width = canvas.width
 var height = canvas.height
-var padding_h = 500
 var animation_duration = 50;
 var last_click_frame = 0;
 var cur_frame = 0;
 var path;
-
-var big_text_font_size = 22;
-var small_text_font_size = 18;
-var big_line_stroke_size = 30;
-var small_lines_stroke_size = 15;
 
 var colors = ['#ECD078', '#D95b43', '#C02942', '#542437', '#53777A'];
 var prev_color;
@@ -67,13 +140,9 @@ var new_color;
 var points;
 var new_points;
 
-var line_y = height/2 - 170;
-var line_w = width - padding_h;
-var start_radius = line_w * 0.17; 
-
 var node_distances = [];
-var datatype = 'schedule';
-var shapetype = 'spiral';
+var datatype = 'history';
+var shapetype = 'line';
 var label_array = [];
 var label_array2 = [];
 var label_array3 = [];
@@ -85,8 +154,34 @@ var schedule_paths = [];
 var schedule_smalltexts = [];
 var new_schedule_paths = [];
 
-var max_dates_in_history = 20;
 var colormap = {}
+
+var line_y, line_w, start_radius, big_text_font_size, big_line_stroke_size, small_text_font_size, small_lines_stroke_size, padding_h = 0;
+
+// set parameters according to screen resolution
+if (window.screen.availWidth > 3000){
+	line_y = height/2 - 170;
+	line_w = width - padding_h;
+	start_radius = line_w * 0.16; 
+
+	big_text_font_size = 22;
+	small_text_font_size = 18;
+	big_line_stroke_size = 30;
+	small_lines_stroke_size = 15;
+
+	padding_h = 500;
+} else {
+	line_y = height/2 - 50;
+	line_w = width - padding_h;
+	start_radius = line_w * 0.15; 
+
+	big_text_font_size = 18;
+	small_text_font_size = 15;
+	big_line_stroke_size = 30;
+	small_lines_stroke_size = 15;
+
+	padding_h = 200;
+}
 
 
 var shift_strings = function(side, shape, datatype){
@@ -126,8 +221,7 @@ var shift_strings = function(side, shape, datatype){
 var gen_line_points = function(){
    var cur_points = [];
    var space_between_points = parseInt(line_w / data.length)
-   
-   //for (i in data) cur_points.push(new Point(padding_h/2 + node_distances[i] * 20, line_y))
+
    for (i in data) cur_points.push(new Point(padding_h/2 + i*space_between_points, line_y))
 
    return cur_points;
@@ -146,28 +240,6 @@ var gen_line_text_coords = function(offset, second_set, proportional){
            rotation: 0
         })
        }
-    } else if (datatype == 'history'){
-        if (proportional){
-            for (i in data) {
-                var min_year = Math.min.apply(0, data.map(function(d){return d[0]}))
-                var max_year = Math.max.apply(0, data.map(function(d){return d[0]}))
-                var date_diff = max_year - min_year + 20
-                var this_x = line_w * (data[i][0] - min_year)/date_diff
-
-                cur_points.push({
-                    coords: new Point(padding_h/2 + this_x + (second_set?130:0), line_y + offset),
-                rotation: 45
-                })
-            }
-        } else {
-            for (i in data) {
-                cur_points.push({
-                    coords: new Point(padding_h/2 + i*space_between_points, line_y + offset),
-                rotation: 45
-                })
-            }
-        }
-    
     } else {
         for (i in data) {
            cur_points.push({
@@ -176,7 +248,6 @@ var gen_line_text_coords = function(offset, second_set, proportional){
         })
        }
     }
-  
 
    return cur_points;
 }
@@ -276,7 +347,7 @@ var gen_spiral_points = function(proportional, radius_decrease_rate){
 }
 
 
-var gen_spiral_text_coords = function(offset, second_set, proportional){
+var gen_spiral_text_coords = function(offset, proportional){
     var cur_points = []
     radius = start_radius + 400;
     if (proportional == undefined) proportional = false
@@ -289,7 +360,7 @@ var gen_spiral_text_coords = function(offset, second_set, proportional){
         var date_diff = max_date - min_date + 10
         var this_x = data.length*(data[i][0] - min_date)/date_diff
 
-        if (proportional){
+        if (proportional == true){
 
             if (i != 0) radius = radius - 40*(data[i][0] - data[i-1][0])/(date_diff/data.length);
             else raidus = radius - 40
@@ -299,7 +370,7 @@ var gen_spiral_text_coords = function(offset, second_set, proportional){
                     width/2 + Math.cos(4 * Math.PI * this_x / data.length)*(radius + offset), 
                     line_y + Math.sin(4 * Math.PI * this_x / data.length)*(radius + offset) 
                     ),
-                rotation: (((i > data.length/4 && i<data.length*0.5) ? 0 : Math.PI) + 4 * Math.PI * this_x / data.length) * 180 / Math.PI
+                rotation: (4 * Math.PI * this_x / data.length) * 180 / Math.PI
             })
         } else {
 
@@ -374,8 +445,8 @@ var draw_spiral = function(){
     text_coords = gen_spiral_text_coords(140)
     if (datatype == 'history') {
         new_points = gen_spiral_points()
-        text_coords = gen_spiral_text_coords(140, false, true)
-        text_coords2 = gen_spiral_text_coords( - 80, true, true)
+        text_coords = gen_spiral_text_coords(140, true)
+        text_coords2 = gen_spiral_text_coords(-80, true)
         shift_strings('whatever', 'spiral', 'history')
     }
     else if (datatype == 'moon'){
@@ -417,8 +488,11 @@ var cleanup = function(){
 
     label_array = []
     label_array2 = []
+    label_array3 = []
     text_coords = []
     text_coords2 = []
+    schedule_paths = []
+    schedule_smalltexts = []
 }
 
 
@@ -451,14 +525,15 @@ var move_labels = function(){
         label_array[i].rotation = text_coords[i].rotation
         
         if (label_array[i].rotation % 360 > 90 && label_array[i].rotation % 360 < 270) label_array[i].rotation += 180
-
-        if (text_coords2 != undefined && text_coords2.length > 0 && label_array2[i] != undefined){
-            label_array2[i].position = text_coords2[i].coords
-            label_array2[i].rotation = text_coords2[i].rotation
-        }
     }
 
-    console.log(label_array3)
+    for (i in label_array2){
+	    label_array2[i].position = text_coords2[i].coords
+        label_array2[i].rotation = text_coords2[i].rotation
+
+        if (label_array2[i].rotation % 360 > 90 && label_array2[i].rotation % 360 < 270) label_array2[i].rotation += 180
+    }
+
     if (label_array3 != undefined){
         if (text_coords3 != undefined && text_coords3.length > 0 && label_array3[i] != undefined){
             label_array3[i].position = text_coords3[i].coords
@@ -540,125 +615,6 @@ var onFrame = function(event) {
 }
 
 
-var load_history = function(){
-    Papa.parse('data/history.csv', {
-        download: true,
-        dynamicTyping: true,
-        complete: function(results) {
-            data = results.data.splice(1, results.data.length);
-            if (max_dates_in_history != undefined && max_dates_in_history != 0){
-                data = data.splice(0, max_dates_in_history)
-            }
-            
-            if (true){
-                start_date = Math.min.apply(0, function(d){return d[0]})
-                interval_value = 10
-                cur_date = start_date
-                end_date = Math.ceil(Math.max.apply(0, data.map(function(d){return d[0]}))/100) * 100
-                while (cur_date <= end_date){
-                    if (! data.some(function(d){return d[0] == cur_date})) 
-                        data.splice(data.indexOf(data.find(function(d){return d[0] > cur_date})), 0, [cur_date, ''])
-                    cur_date += interval_value
-                }
-            }
-            
-            init_history_elements()
-        }
-    })
-}
-
-
-var load_schedule_recurrent = function(){
-    Papa.parse('data/schedulenr.csv', {
-        download: true,
-        dynamicTyping: true,
-        complete: function(results) {
-            // remove first line of csv
-            data = results.data.splice(1, results.data.length);
-
-            // fix date formatting
-            data = fix_date_formatting(data)
-
-            //remove wake up event
-            data = data.filter(function(d){return d[2] != 'Wake up'})
-
-            // generate colormap to have the colors fixed for each event
-            colormap = generate_colormap(data, colors)
-
-            // limit amount of data
-            data = data.splice(0, 14)
-
-            init_schedule_elements()
-        }
-    })
-}
-
-
-var load_schedule_non_recurrent = function(){
-    Papa.parse('data/schedulenr.csv', {
-        download: true,
-        dynamicTyping: true,
-        complete: function(results) {
-            data = results.data.splice(1, results.data.length);
-
-
-
-            init_schedule_elements()
-        }
-    })
-}
-
-var init_moon_elements = function(){
-    cleanup()
-    init_general_resources()
-
-    points = gen_circle_points()
-    text_coords = gen_circle_text_coords(start_radius + 100, false)
-    text_coords2 = gen_circle_text_coords(start_radius + 150, true)
-
-    for (i in points) {
-        // load pictures
-        path.add(points[i]);
-        img = new Raster({
-            source: 'res/' + i%8 + '.png',
-            position: text_coords[i].coords
-        })
-        img.scale(0.08)
-        label_array.push(img)
-
-        // generate labels
-        label_array2.push(gentext(text_coords2[i].coords, data[i][1] + '\n' + data[i][2], 'big', text_coords2[i].rotation))
-    }
-
-    path.closed = true
-    path.smooth()
-}
-
-
-var load_moon = function(){
-    data = [
-        ['u1F311', 'new\nmoon', '09/09'],
-        ['u1F312', 'waxing\ncrescent', '09/13'],
-        ['u1F313', 'first\nquarter', '09/16'],
-        ['u1F314', 'waxing\ngibbous', '09/20'],
-        ['u1F315', 'full\nmoon', '09/24'],
-        ['u1F316', 'waning\ngibbous', '09/28'],
-        ['u1F317', 'last\nquarter', '10/02'],
-        ['u1F318', 'waning\ncrescent', '10/05'],
-        ['u1F311', 'new\nmoon', '10/08'],
-        ['u1F312', 'waxing\ncrescent', '10/12'],
-        ['u1F313', 'first\nquarter', '10/16'],
-        ['u1F314', 'waxing\ngibbous', '10/20'],
-        ['u1F315', 'full\nmoon', '10/24'],
-        ['u1F316', 'waning\ngibbous', '10/28'],
-        ['u1F317', 'last\nquarter', '10/31'],
-        ['u1F318', 'waning\ncrescent', '11/03']
-    ]
-
-    init_moon_elements()
-}
-
-
 var init = function(){
 
     var path = null;
@@ -693,6 +649,55 @@ var init_moon_elements = function(){
     points = gen_circle_points()
     text_coords = gen_circle_text_coords(undefined, false)
     text_coords2 = gen_circle_text_coords(start_radius + 80, true)
+
+    for (i in points) {
+        // load pictures
+        path.add(points[i]);
+        img = new Raster({
+            source: 'res/' + i%8 + '.png',
+            position: text_coords[i].coords
+        })
+        img.scale(0.08)
+        label_array.push(img)
+
+        // generate labels
+        label_array2.push(gentext(text_coords2[i].coords, data[i][1] + '\n' + data[i][2], 'big', text_coords2[i].rotation))
+    }
+
+    path.closed = true
+    path.smooth()
+}
+
+var load_moon = function(){
+    data = [
+        ['u1F311', 'new\nmoon', '09/09'],
+        ['u1F312', 'waxing\ncrescent', '09/13'],
+        ['u1F313', 'first\nquarter', '09/16'],
+        ['u1F314', 'waxing\ngibbous', '09/20'],
+        ['u1F315', 'full\nmoon', '09/24'],
+        ['u1F316', 'waning\ngibbous', '09/28'],
+        ['u1F317', 'last\nquarter', '10/02'],
+        ['u1F318', 'waning\ncrescent', '10/05'],
+        ['u1F311', 'new\nmoon', '10/08'],
+        ['u1F312', 'waxing\ncrescent', '10/12'],
+        ['u1F313', 'first\nquarter', '10/16'],
+        ['u1F314', 'waxing\ngibbous', '10/20'],
+        ['u1F315', 'full\nmoon', '10/24'],
+        ['u1F316', 'waning\ngibbous', '10/28'],
+        ['u1F317', 'last\nquarter', '10/31'],
+        ['u1F318', 'waning\ncrescent', '11/03']
+    ]
+
+    init_moon_elements()
+}
+
+var init_moon_elements = function(){
+    cleanup()
+    init_general_resources()
+
+    points = gen_circle_points()
+    text_coords = gen_circle_text_coords(start_radius + 100, false)
+    text_coords2 = gen_circle_text_coords(start_radius + 150, true)
 
     for (i in points) {
         // load pictures
@@ -748,13 +753,6 @@ var gen_spiral_text_coords_for_schedule = function(radius, offset){
     for (i in data) {
         var event_boundaries = compute_event_start_end(data[i])
         var this_x = (event_boundaries[0] + event_boundaries[1])*0.5
-
-        /*
-        if (i != 0) {
-            var event_boundaries2 = compute_event_start_end(data[i-1])
-            var this_x2 = (event_boundaries[0] + event_boundaries[1])*0.5
-            radius = radius - 20*(this_x - this_x2)/(d_factor/data.length);
-        } else radius = radius - 20 */
 
         radius = (start_radius + 400 + offset - i * 10) - radius_decrease_rate*this_x/(d_factor/data.length);
 
@@ -1144,6 +1142,45 @@ var init_schedule_elements = function(){
     else path.closed = false
     path.smooth()
 
+}
+
+
+var load_schedule_recurrent = function(){
+    Papa.parse('data/schedulenr.csv', {
+        download: true,
+        dynamicTyping: true,
+        complete: function(results) {
+            // remove first line of csv
+            data = results.data.splice(1, results.data.length);
+
+            // fix date formatting
+            data = fix_date_formatting(data)
+
+            //remove wake up event
+            data = data.filter(function(d){return d[2] != 'Wake up'})
+
+            // generate colormap to have the colors fixed for each event
+            colormap = generate_colormap(data, colors)
+
+            // limit amount of data
+            data = data.splice(0, 14)
+
+            init_schedule_elements()
+        }
+    })
+}
+
+
+var load_schedule_non_recurrent = function(){
+    Papa.parse('data/schedulenr.csv', {
+        download: true,
+        dynamicTyping: true,
+        complete: function(results) {
+            data = results.data.splice(1, results.data.length);
+
+            init_schedule_elements()
+        }
+    })
 }
 // reverses month and day if date is in european format
 fix_date_formatting = function(data){
