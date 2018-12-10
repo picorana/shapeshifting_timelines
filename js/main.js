@@ -335,7 +335,7 @@ var draw_spiral = function(){
         text_coords2 = gen_spiral_text_coords(60)
     } else if (datatype == 'schedule_recurrent'){
         new_points = gen_spiral_points_for_schedule(false, 60)
-        text_coords = gen_spiral_text_coords_for_schedule()
+        text_coords = gen_spiral_text_coords_for_schedule(undefined, 120)
         text_coords2 = gen_spiral_text_coords_for_schedule_hours()
         text_coords3 = gen_spiral_text_coords_for_schedule(start_radius, - 50, true)
         new_schedule_paths = gen_schedule_paths(points, 'spiral')
@@ -459,7 +459,6 @@ var onFrame = function(event) {
     
     if (label_array2 != undefined){
         for (i in label_array2){
-            //if (label_array2[i] == undefined) break
             if (anim_percent < 0.5) {
                 label_array2[i].fillColor.alpha = - anim_percent * 2
             }
@@ -472,7 +471,6 @@ var onFrame = function(event) {
 
     if (label_array3 != undefined){
         for (i in label_array3){
-            //if (label_array2[i] == undefined) break
             if (anim_percent < 0.5) {
                 label_array3[i].fillColor.alpha = - anim_percent * 2
             }

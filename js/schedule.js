@@ -368,7 +368,7 @@ var init_schedule_elements = function(){
         schedule_paths_coords = gen_schedule_paths(points, 'circle')
     } else if (shapetype == 'spiral'){
         points = gen_spiral_points_for_schedule(false, 60)
-        text_coords = gen_spiral_text_coords_for_schedule()
+        text_coords = gen_spiral_text_coords_for_schedule(undefined, 120)
         text_coords2 = gen_spiral_text_coords_for_schedule_hours()
         schedule_paths_coords = gen_schedule_paths(points, 'spiral')
     }
