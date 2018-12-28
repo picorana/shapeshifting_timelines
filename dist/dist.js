@@ -221,9 +221,9 @@ var shift_strings = function(side, shape, datatype){
 // generates the positions of all the points on a line
 var gen_line_points = function(){
    var cur_points = [];
-   var space_between_points = parseInt(line_w / data.length)
+   var space_between_points = Math.round(line_w / data.length)
 
-   for (i in data) cur_points.push(new Point(padding_h/2 + i*space_between_points, line_y))
+   for (var i in data) cur_points.push(new Point(padding_h/2 + i*space_between_points, line_y))
 
    return cur_points;
 }
@@ -259,7 +259,7 @@ var gen_circle_points = function(){
     var cur_points = []
     var radius = start_radius;
 
-    for (i in data) cur_points.push(
+    for (var i in data) cur_points.push(
         new Point(
             width/2 + Math.cos( - Math.PI/2 + 2 * Math.PI * i / data.length)*radius, 
             height/2 + Math.sin( - Math.PI/2 + 2 * Math.PI * i / data.length)*radius 
@@ -354,16 +354,16 @@ var gen_spiral_text_coords = function(offset, proportional){
     if (proportional == undefined) proportional = false
     if (offset == undefined) offset = 0
 
-    for (i in data) {
+    for (var i in data) {
 
         var min_date = Math.min.apply(0, data.map(function(d){return d[0]}))
         var max_date = Math.max.apply(0, data.map(function(d){return d[0]}))
         var date_diff = max_date - min_date + 10
         var this_x = data.length*(data[i][0] - min_date)/date_diff
 
-        if (proportional == true){
+        if (proportional === true){
 
-            if (i != 0) radius = radius - 40*(data[i][0] - data[i-1][0])/(date_diff/data.length);
+            if (i !== 0) radius = radius - 40*(data[i][0] - data[i-1][0])/(date_diff/data.length);
             else raidus = radius - 40
 
             cur_points.push({ 
@@ -436,7 +436,7 @@ var draw_line = function(){
     if (datatype == 'schedule_recurrent') {
         text_coords = gen_line_text_coords_for_schedule(-260, 1)
         text_coords3 = gen_line_text_coords_for_schedule(60)
-        for (item in text_coords3) text_coords3[item].rotation += 90
+        for (var item in text_coords3) text_coords3[item].rotation += 90
         text_coords2 = gen_line_text_coords_for_schedule(-80, 2)
         new_schedule_paths = gen_schedule_paths(new_points, 'line')
     }
@@ -448,7 +448,7 @@ var draw_spiral = function(){
     document.getElementById('spiral_btn').style.backgroundColor = 'gray'
     document.getElementById('circle_btn').style.backgroundColor = 'white'
     last_click_frame = cur_frame;            
-    new_color = colors[parseInt(Math.random()*colors.length)]
+    new_color = colors[parseInt(Math.random()*colors.length, 10)]
     new_points = gen_spiral_points()
     text_coords = gen_spiral_text_coords(140)
     if (datatype == 'history') {
@@ -489,11 +489,11 @@ var draw_schedule = function(){
 
 var cleanup = function(){
     if (path != undefined) path.remove()
-    for (i in label_array) label_array[i].remove()
-    for (i in label_array2) label_array2[i].remove()
-    for (i in label_array3) label_array3[i].remove()
-    for (i in schedule_paths) schedule_paths[i].remove()
-    for (i in schedule_smalltexts) schedule_smalltexts[i].remove()
+    for (var i in label_array) label_array[i].remove()
+    for (var i in label_array2) label_array2[i].remove()
+    for (var i in label_array3) label_array3[i].remove()
+    for (var i in schedule_paths) schedule_paths[i].remove()
+    for (var i in schedule_smalltexts) schedule_smalltexts[i].remove()
 
 
     label_array = []
@@ -507,8 +507,8 @@ var cleanup = function(){
 
 
 var init_general_resources = function(){
-    prev_color = colors[parseInt(Math.random()*colors.length)];
-    new_color = colors[parseInt(Math.random()*colors.length)];
+    prev_color = colors[parseInt(Math.random()*colors.length, 10)];
+    new_color = colors[parseInt(Math.random()*colors.length, 10)];
 
     path = new Path();
     path.strokeColor = prev_color 
@@ -571,12 +571,12 @@ var onFrame = function(event) {
     var anim_percent = (cur_frame - last_click_frame)/animation_duration
     path.strokeColor = easeColor(prev_color, new_color, anim_percent)
 
-    for (i in label_array){
+    for (var i in label_array){
         if (anim_percent < 0.5) {
             if (datatype == 'moon') label_array[i].opacity = label_array[i].opacity - 0.1 
             else label_array[i].fillColor.alpha = - anim_percent * 2
         }
-        else if (anim_percent == 0.5) move_labels()
+        else if (anim_percent === 0.5) move_labels()
         else {
             if (datatype == 'moon') {}//label_array[i].opacity = anim_percent*2 - 0.5
             else label_array[i].fillColor.alpha = anim_percent*2 - 0.5
@@ -584,11 +584,11 @@ var onFrame = function(event) {
     }
     
     if (label_array2 != undefined){
-        for (i in label_array2){
+        for (var i in label_array2){
             if (anim_percent < 0.5) {
                 label_array2[i].fillColor.alpha = - anim_percent * 2
             }
-            else if (anim_percent == 0.5) move_labels()
+            else if (anim_percent === 0.5) move_labels()
             else {
                 label_array2[i].fillColor.alpha = anim_percent*2 - 0.5
             }
@@ -596,11 +596,11 @@ var onFrame = function(event) {
     }
 
     if (label_array3 != undefined){
-        for (i in label_array3){
+        for (var i in label_array3){
             if (anim_percent < 0.5) {
                 label_array3[i].fillColor.alpha = - anim_percent * 2
             }
-            else if (anim_percent == 0.5) move_labels()
+            else if (anim_percent === 0.5) move_labels()
             else {
                 label_array3[i].fillColor.alpha = anim_percent*2 - 0.5
             }
@@ -608,12 +608,12 @@ var onFrame = function(event) {
     }
 
     if (schedule_smalltexts != undefined){
-        for (i in schedule_smalltexts){
+        for (var i in schedule_smalltexts){
             //if (label_array2[i] == undefined) break
             if (anim_percent < 0.5) {
                 schedule_smalltexts[i].fillColor.alpha = - anim_percent * 2
             }
-            else if (anim_percent == 0.5) move_labels()
+            else if (anim_percent === 0.5) move_labels()
             else {
                 schedule_smalltexts[i].fillColor.alpha = anim_percent*2 - 0.5
             }
@@ -627,8 +627,8 @@ var onFrame = function(event) {
     }
 
     if (schedule_paths != undefined && new_schedule_paths != undefined){
-        for (i in schedule_paths){
-            for (j in schedule_paths[i].segments){
+        for (var i in schedule_paths){
+            for (var j in schedule_paths[i].segments){
                 var segment = schedule_paths[i].segments[j];
                 segment.point.y = segment.point.y + (new_schedule_paths[i][j].y - segment.point.y)*anim_percent;
                 segment.point.x = segment.point.x + (new_schedule_paths[i][j].x - segment.point.x)*anim_percent;
@@ -1201,7 +1201,7 @@ compute_date_diff = function(date1, date2){
 
 generate_colormap = function(data, colors){
     var colormap = {}
-    for (i in data){
+    for (var i in data){
         if (colormap[data[i][2]] == undefined) colormap[data[i][2]] = colors[i%colors.length]
     }
     return colormap
