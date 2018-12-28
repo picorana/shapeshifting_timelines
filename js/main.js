@@ -39,7 +39,7 @@ if (window.screen.availWidth > 3000){
 	line_w = width - padding_h;
 	start_radius = line_w * 0.13; 
 
-	big_text_font_size = 18;
+	big_text_font_size = 20;
 	small_text_font_size = 15;
 	big_line_stroke_size = 30;
 	small_lines_stroke_size = 15;
@@ -274,7 +274,7 @@ var draw_circle = function(){
     last_click_frame = cur_frame;
     new_color = colors[parseInt(Math.random()*colors.length)]
     new_points = gen_circle_points()
-    text_coords = gen_circle_text_coords(undefined, false)
+    text_coords = gen_circle_text_coords(start_radius + 200, false)
     if (datatype == 'history') {
         text_coords = gen_circle_text_coords(start_radius + 180, false, true)
         text_coords2 = gen_circle_text_coords(start_radius - 50, true, true)
@@ -537,7 +537,7 @@ var init = function(){
 
 
 var load_schedule_recurrent = function(){
-    Papa.parse('data/schedulenr.csv', {
+    Papa.parse('data/scheduler.csv', {
         download: true,
         dynamicTyping: true,
         complete: function(results) {

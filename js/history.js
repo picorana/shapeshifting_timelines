@@ -1,6 +1,6 @@
 // history parameters
 var add_placeholder_dates = false;
-var max_dates_in_history = 20;
+var max_dates_in_history = 10;
 
 
 // loads history csv file and manipulates it based on the previous parameters
@@ -49,7 +49,7 @@ var gen_line_text_coords_for_history = function(offset, second_set, proportional
             var this_x = line_w * (data[i][0] - min_year)/date_diff
 
             cur_points.push({
-                coords: new Point(padding_h/2 + this_x + (second_set?130:0), line_y + offset),
+                coords: new Point(padding_h/2 + this_x + (second_set?150:0), line_y + offset),
                 rotation: 45
             })
         }
@@ -73,8 +73,8 @@ var init_history_elements = function(){
     init_general_resources()
 
     points = gen_line_points()
-    text_coords = gen_line_text_coords_for_history(-100, false, true)
-    text_coords2 = gen_line_text_coords_for_history(30, true, true)
+    text_coords = gen_line_text_coords_for_history(-110, false, true)
+    text_coords2 = gen_line_text_coords_for_history(40, true, true)
 
     for (i in points){
         path.add(points[i]);
